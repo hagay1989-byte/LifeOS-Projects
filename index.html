@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS - ניהול פרויקטים</title>
+    <title>LifeOS V69 - Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,6 +13,7 @@
     <style>
         body { font-family: 'Rubik', sans-serif; background-color: #0f172a; color: white; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .dashboard-card { background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 28px; border: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden text-right">
@@ -24,19 +25,37 @@
             <input type="email" id="emailInput" placeholder="אימייל" class="w-full px-5 py-4 bg-slate-800 rounded-2xl mb-3 outline-none border border-slate-700 focus:border-purple-500 text-left" dir="ltr">
             <input type="password" id="passInput" placeholder="סיסמה" class="w-full px-5 py-4 bg-slate-800 rounded-2xl mb-6 outline-none border border-slate-700 focus:border-purple-500 text-left" dir="ltr">
             <button onclick="handleLogin()" class="w-full py-4 bg-purple-600 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition mb-4">התחברות</button>
-            <button onclick="handleSignup()" class="w-full py-3 bg-white/5 text-white font-bold rounded-2xl border border-white/10">יצירת חשבון חדש (כניסה מיידית)</button>
+            <button onclick="handleSignup()" class="w-full py-3 bg-white/5 text-white font-bold rounded-2xl border border-white/10">יצירת חשבון וכניסה מיידית</button>
         </div>
     </div>
 
     <div id="appScreen" class="hidden flex-col h-full w-full">
         <header class="glass p-4 flex justify-between items-center sticky top-0 z-20">
             <h1 class="text-xl font-black">LifeOS</h1>
-            <button onclick="auth.signOut()" class="w-10 h-10 rounded-xl bg-white/5 text-slate-500 flex items-center justify-center"><i class="fas fa-sign-out-alt"></i></button>
+            <div class="flex gap-2">
+                <button onclick="toggleView()" id="viewBtn" class="px-4 py-2 bg-purple-600/20 text-purple-400 rounded-xl text-xs font-bold border border-purple-500/30">דשבורד</button>
+                <button onclick="auth.signOut()" class="w-10 h-10 rounded-xl bg-white/5 text-slate-500 flex items-center justify-center"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
         </header>
-        <main class="flex-1 overflow-y-auto p-6" id="projectsView">
-            <div class="text-center py-20 text-slate-500 italic">טוען נתונים...</div>
+
+        <main class="flex-1 overflow-y-auto p-6">
+            <div id="projectsView" class="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-24"></div>
+            <div id="dashboardView" class="hidden space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="dashboard-card p-6 border-r-4 border-indigo-500">
+                        <span class="text-[10px] text-slate-500 font-black uppercase">תקציב כולל</span>
+                        <div class="text-2xl font-black mt-2" id="statPlanned">₪0</div>
+                    </div>
+                    <div class="dashboard-card p-6 border-r-4 border-rose-500">
+                        <span class="text-[10px] text-slate-500 font-black uppercase">בוצע בפועל</span>
+                        <div class="text-2xl font-black text-rose-400 mt-2" id="statSpent">₪0</div>
+                    </div>
+                </div>
+                <div class="dashboard-card p-6 h-72"><canvas id="budgetChart"></canvas></div>
+            </div>
         </main>
-        <button onclick="alert('פונקציית הוספה תעודכן בקרוב!')" class="fixed bottom-8 left-8 w-16 h-16 bg-purple-600 text-white rounded-2xl flex items-center justify-center shadow-2xl z-40"><i class="fas fa-plus"></i></button>
+        
+        <button onclick="addNewProject()" class="fixed bottom-8 left-8 w-16 h-16 bg-purple-600 text-white rounded-2xl flex items-center justify-center shadow-2xl z-40"><i class="fas fa-plus"></i></button>
     </div>
 
     <script>
@@ -47,13 +66,13 @@
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(), db = firebase.firestore();
+        let projects = [], isDashboard = false, budgetChart = null;
 
-        // האזנה למצב משתמש - בוטל הצורך באישור מייל
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('authScreen').classList.add('hidden');
                 document.getElementById('appScreen').classList.remove('hidden');
-                loadUserData(user.email.toLowerCase());
+                loadData(user.email.toLowerCase());
             } else {
                 document.getElementById('authScreen').classList.remove('hidden');
                 document.getElementById('appScreen').classList.add('hidden');
@@ -62,30 +81,70 @@
 
         function handleLogin() {
             const email = document.getElementById('emailInput').value.trim();
-            const pass = document.getElementById('passInput').value;
-            auth.signInWithEmailAndPassword(email, pass).catch(err => alert("שגיאה: " + err.message));
+            auth.signInWithEmailAndPassword(email, document.getElementById('passInput').value).catch(err => alert(err.message));
         }
 
         function handleSignup() {
-            const email = document.getElementById('emailInput').value.trim(); // מנקה רווחים אוטומטית
-            const pass = document.getElementById('passInput').value;
-            if(!email || !pass) return alert("נא למלא אימייל וסיסמה");
-            
-            auth.createUserWithEmailAndPassword(email, pass)
-                .then(() => alert("נרשמת! ברוכים הבאים ל-LifeOS"))
-                .catch(err => alert("שגיאה ברישום: " + err.message));
+            const email = document.getElementById('emailInput').value.trim();
+            auth.createUserWithEmailAndPassword(email, document.getElementById('passInput').value)
+                .then(() => alert("ברוכים הבאים!"))
+                .catch(err => alert(err.message));
         }
 
-        function loadUserData(email) {
+        function loadData(email) {
             db.collection('life_projects').where('collaborators', 'array-contains', email)
               .onSnapshot(snap => {
-                  const grid = document.getElementById('projectsView');
-                  if(snap.empty) {
-                      grid.innerHTML = '<div class="text-center py-20 text-slate-500">ברוך הבא! הלוח שלך כרגע ריק.</div>';
-                      return;
-                  }
-                  grid.innerHTML = snap.docs.map(doc => `<div class="glass p-6 rounded-3xl mb-4"><h3 class="font-bold">${doc.data().title}</h3></div>`).join('');
+                  projects = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                  render();
               });
+        }
+
+        function addNewProject() {
+            const title = prompt("שם הפרויקט:");
+            const budget = prompt("תקציב משוער (₪):");
+            if(title && budget) {
+                db.collection('life_projects').add({
+                    title: title, budget: Number(budget),
+                    collaborators: [auth.currentUser.email.toLowerCase()],
+                    tasks: [], createdAt: new Date()
+                });
+            }
+        }
+
+        function toggleView() {
+            isDashboard = !isDashboard;
+            document.getElementById('projectsView').classList.toggle('hidden', isDashboard);
+            document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard);
+            document.getElementById('viewBtn').innerText = isDashboard ? "פרויקטים" : "דשבורד";
+            if(isDashboard) renderChart();
+        }
+
+        function render() {
+            const grid = document.getElementById('projectsView');
+            if(projects.length === 0) {
+                grid.innerHTML = '<div class="text-center py-20 text-slate-500">אין פרויקטים. לחץ על ה-(+) להתחלה.</div>';
+                return;
+            }
+            grid.innerHTML = projects.map(p => `<div class="dashboard-card p-6">
+                <h3 class="text-xl font-bold">${p.title}</h3>
+                <div class="text-xs text-slate-500 mt-2">תקציב: ₪${p.budget.toLocaleString()}</div>
+            </div>`).join('');
+            
+            let planned = projects.reduce((s,p) => s + (p.budget||0), 0);
+            document.getElementById('statPlanned').innerText = `₪${planned.toLocaleString()}`;
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('budgetChart').getContext('2d');
+            if(budgetChart) budgetChart.destroy();
+            budgetChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: projects.map(p => p.title),
+                    datasets: [{ label: 'תקציב מתוכנן', data: projects.map(p => p.budget), backgroundColor: '#6366f1' }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
         }
     </script>
 </body>
