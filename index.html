@@ -3,67 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V70 - שיתופי</title>
+    <title>LifeOS V71 - Pro Workspace</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;700;900&display=swap" rel="stylesheet">
-
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-
     <style>
-        body { font-family: 'Rubik', sans-serif; background-color: #0f172a; color: white; }
+        body { font-family: 'Rubik', sans-serif; background-color: #0f172a; color: white; overflow-x: hidden; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .dashboard-card { background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden text-right">
+<body class="h-screen flex flex-col text-right">
 
     <div id="authScreen" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900 p-6">
         <div class="w-full max-w-sm glass p-8 rounded-[40px] text-center">
             <h1 class="text-3xl font-black mb-2">Life<span class="text-purple-400">OS</span></h1>
-            <p class="text-slate-400 text-sm mb-8">מרחב עבודה משותף</p>
             <input type="email" id="emailInput" placeholder="אימייל" class="w-full px-5 py-4 bg-slate-800 rounded-2xl mb-3 outline-none border border-slate-700 focus:border-purple-500 text-left" dir="ltr">
             <input type="password" id="passInput" placeholder="סיסמה" class="w-full px-5 py-4 bg-slate-800 rounded-2xl mb-6 outline-none border border-slate-700 focus:border-purple-500 text-left" dir="ltr">
-            <button onclick="handleLogin()" class="w-full py-4 bg-purple-600 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition mb-4">התחברות</button>
-            <button onclick="handleSignup()" class="w-full py-3 bg-white/5 text-white font-bold rounded-2xl border border-white/10">יצירת חשבון וכניסה מיידית</button>
+            <button onclick="handleLogin()" class="w-full py-4 bg-purple-600 text-white font-bold rounded-2xl mb-4">התחברות</button>
+            <button onclick="handleSignup()" class="w-full py-3 bg-white/5 text-white font-bold rounded-2xl border border-white/10">יצירת חשבון</button>
         </div>
     </div>
 
     <div id="appScreen" class="hidden flex-col h-full w-full">
         <header class="glass p-4 flex justify-between items-center sticky top-0 z-20">
-            <h1 class="text-xl font-black tracking-tight">LifeOS</h1>
+            <h1 class="text-xl font-black">LifeOS</h1>
             <div class="flex gap-2">
                 <button onclick="toggleView()" id="viewBtn" class="px-4 py-2 bg-purple-600/20 text-purple-400 rounded-xl text-xs font-bold border border-purple-500/30">דשבורד</button>
                 <button onclick="auth.signOut()" class="w-10 h-10 rounded-xl bg-white/5 text-slate-500 flex items-center justify-center"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
 
-        <main class="flex-1 overflow-y-auto p-6 bg-[#0f172a]">
-            <div id="projectsView" class="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-24"></div>
-            
+        <main class="flex-1 overflow-y-auto p-6">
+            <div id="projectsView" class="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-24 text-right"></div>
             <div id="dashboardView" class="hidden space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="dashboard-card p-6 border-r-4 border-indigo-500">
-                        <span class="text-[10px] text-slate-500 font-black uppercase">תקציב כולל</span>
-                        <div class="text-2xl font-black mt-2" id="statPlanned">₪0</div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="dashboard-card p-4 border-r-4 border-indigo-500">
+                        <span class="text-[10px] text-slate-500 font-black">תקציב</span>
+                        <div class="text-xl font-black mt-1" id="statPlanned">₪0</div>
                     </div>
-                    <div class="dashboard-card p-6 border-r-4 border-rose-500">
-                        <span class="text-[10px] text-slate-500 font-black uppercase">הוצאה בפועל</span>
-                        <div class="text-2xl font-black text-rose-400 mt-2" id="statSpent">₪0</div>
+                    <div class="dashboard-card p-4 border-r-4 border-rose-500">
+                        <span class="text-[10px] text-slate-500 font-black">בוצע</span>
+                        <div class="text-xl font-black text-rose-400 mt-1">₪0</div>
                     </div>
                 </div>
-                <div class="dashboard-card p-6 h-72">
-                    <canvas id="budgetChart"></canvas>
-                </div>
+                <div class="dashboard-card p-4 h-64"><canvas id="budgetChart"></canvas></div>
             </div>
         </main>
-        
-        <button onclick="addNewProject()" class="fixed bottom-8 left-8 w-16 h-16 bg-purple-600 text-white rounded-2xl flex items-center justify-center shadow-2xl z-40 shadow-purple-500/20">
-            <i class="fas fa-plus text-xl"></i>
+
+        <button onclick="openProjectModal()" class="fixed bottom-8 left-8 w-16 h-16 bg-purple-600 text-white rounded-2xl flex items-center justify-center shadow-2xl z-40">
+            <i class="fas fa-plus"></i>
         </button>
+    </div>
+
+    <div id="projectModal" class="fixed inset-0 z-[110] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4 text-right">
+        <div class="bg-[#1e293b] w-full max-w-md rounded-[32px] p-8 border border-white/10">
+            <h3 class="text-2xl font-black mb-6">פרויקט חדש</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] text-slate-500 font-black mb-1 block">שם הפרויקט</label>
+                    <input type="text" id="pTitle" class="w-full p-4 bg-slate-900 rounded-2xl outline-none border border-white/5 focus:border-purple-500">
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-500 font-black mb-1 block">תקציב (₪)</label>
+                    <input type="number" id="pBudget" class="w-full p-4 bg-slate-900 rounded-2xl outline-none border border-white/5 focus:border-purple-500">
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-500 font-black mb-1 block">אימייל שותף (אופציונלי)</label>
+                    <input type="email" id="pPartner" class="w-full p-4 bg-slate-900 rounded-2xl outline-none border border-white/5 focus:border-purple-500 text-left" dir="ltr">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="saveNewProject()" class="flex-1 py-4 bg-purple-600 text-white font-bold rounded-2xl">שמור פרויקט</button>
+                <button onclick="closeProjectModal()" class="px-6 py-4 bg-white/5 text-slate-400 rounded-2xl">ביטול</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -74,14 +92,13 @@
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(), db = firebase.firestore();
-
         let projects = [], isDashboard = false, budgetChart = null;
 
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('authScreen').classList.add('hidden');
                 document.getElementById('appScreen').classList.remove('hidden');
-                loadUserData(user.email.toLowerCase());
+                loadData(user.email.toLowerCase());
             } else {
                 document.getElementById('authScreen').classList.remove('hidden');
                 document.getElementById('appScreen').classList.add('hidden');
@@ -90,31 +107,21 @@
 
         function handleLogin() {
             const email = document.getElementById('emailInput').value.trim();
-            const pass = document.getElementById('passInput').value;
-            auth.signInWithEmailAndPassword(email, pass).catch(err => alert("שגיאה: " + err.message));
+            auth.signInWithEmailAndPassword(email, document.getElementById('passInput').value).catch(err => alert(err.message));
         }
 
         function handleSignup() {
             const email = document.getElementById('emailInput').value.trim();
-            const pass = document.getElementById('passInput').value;
-            auth.createUserWithEmailAndPassword(email, pass)
-                .then(() => alert("נרשמת בהצלחה!"))
-                .catch(err => alert("שגיאה ברישום: " + err.message));
+            auth.createUserWithEmailAndPassword(email, document.getElementById('passInput').value).catch(err => alert(err.message));
         }
 
-        function loadUserData(email) {
-            db.collection('life_projects').where('collaborators', 'array-contains', email)
-              .onSnapshot(snap => {
-                  projects = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                  renderUI();
-                  if(isDashboard) updateDashboard();
-              });
-        }
+        function openProjectModal() { document.getElementById('projectModal').classList.replace('hidden', 'flex'); }
+        function closeProjectModal() { document.getElementById('projectModal').classList.replace('flex', 'hidden'); }
 
-        function addNewProject() {
-            const title = prompt("שם הפרויקט:");
-            const budget = prompt("תקציב (₪):");
-            const partner = prompt("מייל של שותף (אופציונלי):");
+        function saveNewProject() {
+            const title = document.getElementById('pTitle').value;
+            const budget = document.getElementById('pBudget').value;
+            const partner = document.getElementById('pPartner').value;
             
             if(title && budget) {
                 const collaborators = [auth.currentUser.email.toLowerCase()];
@@ -124,39 +131,37 @@
                     title: title, budget: Number(budget),
                     collaborators: collaborators,
                     tasks: [], createdAt: new Date()
+                }).then(() => {
+                    closeProjectModal();
+                    document.getElementById('pTitle').value = '';
+                    document.getElementById('pBudget').value = '';
+                    document.getElementById('pPartner').value = '';
                 });
             }
+        }
+
+        function loadData(email) {
+            db.collection('life_projects').where('collaborators', 'array-contains', email)
+              .onSnapshot(snap => {
+                  projects = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                  render();
+              });
+        }
+
+        function render() {
+            const grid = document.getElementById('projectsView');
+            grid.innerHTML = projects.map(p => `<div class="dashboard-card p-6">
+                <h3 class="text-xl font-bold">${p.title}</h3>
+                <div class="text-xs text-slate-500 mt-1">תקציב: ₪${(p.budget || 0).toLocaleString()}</div>
+            </div>`).join('');
+            document.getElementById('statPlanned').innerText = `₪${projects.reduce((s,p)=>s+(p.budget||0),0).toLocaleString()}`;
         }
 
         function toggleView() {
             isDashboard = !isDashboard;
             document.getElementById('projectsView').classList.toggle('hidden', isDashboard);
             document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard);
-            document.getElementById('viewBtn').innerText = isDashboard ? "פרויקטים" : "דשבורד";
-            if(isDashboard) updateDashboard();
-        }
-
-        function renderUI() {
-            const grid = document.getElementById('projectsView');
-            if(projects.length === 0) {
-                grid.innerHTML = '<div class="col-span-full text-center py-20 text-slate-500">לחץ על ה-(+) ליצירת פרויקט ראשון.</div>';
-                return;
-            }
-            grid.innerHTML = projects.map(p => `
-                <div class="dashboard-card p-6">
-                    <h3 class="text-xl font-bold mb-1">${p.title}</h3>
-                    <div class="text-xs text-slate-500">תקציב: ₪${(p.budget || 0).toLocaleString()}</div>
-                    <div class="mt-4 flex -space-x-2 overflow-hidden">
-                        ${p.collaborators.map(c => `<div class="inline-block h-6 w-6 rounded-full bg-purple-500 border-2 border-slate-900 text-[8px] flex items-center justify-center font-bold">${c[0].toUpperCase()}</div>`).join('')}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function updateDashboard() {
-            const planned = projects.reduce((s,p) => s + (p.budget||0), 0);
-            document.getElementById('statPlanned').innerText = `₪${planned.toLocaleString()}`;
-            renderChart();
+            if(isDashboard) renderChart();
         }
 
         function renderChart() {
@@ -166,9 +171,9 @@
                 type: 'bar',
                 data: {
                     labels: projects.map(p => p.title),
-                    datasets: [{ label: 'תקציב מתוכנן', data: projects.map(p => p.budget), backgroundColor: '#6366f1', borderRadius: 8 }]
+                    datasets: [{ label: 'תקציב', data: projects.map(p => p.budget), backgroundColor: '#6366f1' }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { color: '#64748b' } } } }
+                options: { responsive: true, maintainAspectRatio: false }
             });
         }
     </script>
