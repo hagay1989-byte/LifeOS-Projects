@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V71 - Pro Workspace</title>
+    <title>LifeOS V72 - Pro Workspace</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -12,74 +12,99 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <style>
-        body { font-family: 'Rubik', sans-serif; background-color: #0f172a; color: white; overflow-x: hidden; }
+        body { font-family: 'Rubik', sans-serif; background-color: #0f172a; color: white; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .dashboard-card { background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); }
+        .modal-bg { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); }
+        input, select { background: #1e293b !important; color: white !important; border: 1px solid rgba(255,255,255,0.1) !important; }
     </style>
 </head>
-<body class="h-screen flex flex-col text-right">
+<body class="h-screen flex flex-col text-right overflow-hidden">
 
     <div id="authScreen" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900 p-6">
         <div class="w-full max-w-sm glass p-8 rounded-[40px] text-center">
-            <h1 class="text-3xl font-black mb-2">Life<span class="text-purple-400">OS</span></h1>
-            <input type="email" id="emailInput" placeholder="אימייל" class="w-full px-5 py-4 bg-slate-800 rounded-2xl mb-3 outline-none border border-slate-700 focus:border-purple-500 text-left" dir="ltr">
-            <input type="password" id="passInput" placeholder="סיסמה" class="w-full px-5 py-4 bg-slate-800 rounded-2xl mb-6 outline-none border border-slate-700 focus:border-purple-500 text-left" dir="ltr">
+            <h1 class="text-3xl font-black mb-6 italic">Life<span class="text-purple-500">OS</span></h1>
+            <input type="email" id="emailInput" placeholder="אימייל" class="w-full px-5 py-4 rounded-2xl mb-3 outline-none focus:border-purple-500 text-left" dir="ltr">
+            <input type="password" id="passInput" placeholder="סיסמה" class="w-full px-5 py-4 rounded-2xl mb-6 outline-none focus:border-purple-500 text-left" dir="ltr">
             <button onclick="handleLogin()" class="w-full py-4 bg-purple-600 text-white font-bold rounded-2xl mb-4">התחברות</button>
-            <button onclick="handleSignup()" class="w-full py-3 bg-white/5 text-white font-bold rounded-2xl border border-white/10">יצירת חשבון</button>
+            <button onclick="handleSignup()" class="w-full py-3 bg-white/5 text-white font-bold rounded-2xl border border-white/10 text-xs">יצירת חשבון מהיר</button>
         </div>
     </div>
 
     <div id="appScreen" class="hidden flex-col h-full w-full">
-        <header class="glass p-4 flex justify-between items-center sticky top-0 z-20">
-            <h1 class="text-xl font-black">LifeOS</h1>
+        <header class="glass p-4 flex justify-between items-center z-20">
+            <div class="flex gap-3">
+                <button onclick="openPartnerModal()" class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30"><i class="fas fa-users"></i></button>
+                <h1 class="text-xl font-black italic">LifeOS</h1>
+            </div>
             <div class="flex gap-2">
                 <button onclick="toggleView()" id="viewBtn" class="px-4 py-2 bg-purple-600/20 text-purple-400 rounded-xl text-xs font-bold border border-purple-500/30">דשבורד</button>
                 <button onclick="auth.signOut()" class="w-10 h-10 rounded-xl bg-white/5 text-slate-500 flex items-center justify-center"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
 
-        <main class="flex-1 overflow-y-auto p-6">
-            <div id="projectsView" class="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-24 text-right"></div>
-            <div id="dashboardView" class="hidden space-y-6">
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="dashboard-card p-4 border-r-4 border-indigo-500">
-                        <span class="text-[10px] text-slate-500 font-black">תקציב</span>
-                        <div class="text-xl font-black mt-1" id="statPlanned">₪0</div>
-                    </div>
-                    <div class="dashboard-card p-4 border-r-4 border-rose-500">
-                        <span class="text-[10px] text-slate-500 font-black">בוצע</span>
-                        <div class="text-xl font-black text-rose-400 mt-1">₪0</div>
-                    </div>
-                </div>
-                <div class="dashboard-card p-4 h-64"><canvas id="budgetChart"></canvas></div>
-            </div>
+        <main class="flex-1 overflow-y-auto p-6" id="mainContent">
+            <div id="projectsView" class="grid grid-cols-1 gap-4 pb-24"></div>
         </main>
 
         <button onclick="openProjectModal()" class="fixed bottom-8 left-8 w-16 h-16 bg-purple-600 text-white rounded-2xl flex items-center justify-center shadow-2xl z-40">
-            <i class="fas fa-plus"></i>
+            <i class="fas fa-plus text-xl"></i>
         </button>
     </div>
 
-    <div id="projectModal" class="fixed inset-0 z-[110] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4 text-right">
-        <div class="bg-[#1e293b] w-full max-w-md rounded-[32px] p-8 border border-white/10">
-            <h3 class="text-2xl font-black mb-6">פרויקט חדש</h3>
-            <div class="space-y-4">
+    <div id="projectModal" class="fixed inset-0 z-[110] hidden items-center justify-center modal-bg p-4">
+        <div class="glass w-full max-w-md rounded-[32px] p-6 relative overflow-hidden">
+            <button onclick="closeProjectModal()" class="absolute top-4 left-4 text-slate-400"><i class="fas fa-times"></i></button>
+            <h3 class="text-xl font-black mb-8 text-center">פרויקט חדש</h3>
+            
+            <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                    <label class="text-[10px] text-slate-500 font-black mb-1 block">שם הפרויקט</label>
-                    <input type="text" id="pTitle" class="w-full p-4 bg-slate-900 rounded-2xl outline-none border border-white/5 focus:border-purple-500">
+                    <label class="text-[10px] text-slate-500 font-bold block mb-1">קטגוריה</label>
+                    <select id="pCat" class="w-full p-3 rounded-xl outline-none">
+                        <option>🏠 שיפוץ</option>
+                        <option>✈️ טיול</option>
+                        <option>💼 עבודה</option>
+                        <option>🛒 קניות</option>
+                    </select>
                 </div>
                 <div>
-                    <label class="text-[10px] text-slate-500 font-black mb-1 block">תקציב (₪)</label>
-                    <input type="number" id="pBudget" class="w-full p-4 bg-slate-900 rounded-2xl outline-none border border-white/5 focus:border-purple-500">
-                </div>
-                <div>
-                    <label class="text-[10px] text-slate-500 font-black mb-1 block">אימייל שותף (אופציונלי)</label>
-                    <input type="email" id="pPartner" class="w-full p-4 bg-slate-900 rounded-2xl outline-none border border-white/5 focus:border-purple-500 text-left" dir="ltr">
+                    <label class="text-[10px] text-slate-500 font-bold block mb-1">אחראי</label>
+                    <div id="pOwnerDisplay" class="w-full p-3 rounded-xl bg-slate-800 text-xs truncate border border-white/5"></div>
                 </div>
             </div>
-            <div class="flex gap-3 mt-8">
-                <button onclick="saveNewProject()" class="flex-1 py-4 bg-purple-600 text-white font-bold rounded-2xl">שמור פרויקט</button>
-                <button onclick="closeProjectModal()" class="px-6 py-4 bg-white/5 text-slate-400 rounded-2xl">ביטול</button>
+
+            <div class="mb-4">
+                <label class="text-[10px] text-slate-500 font-bold block mb-1">שם הפרויקט</label>
+                <input type="text" id="pTitle" placeholder="למשל: חופשה ביוון" class="w-full p-4 rounded-xl outline-none">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="text-[10px] text-slate-500 font-bold block mb-1">התחלה</label>
+                    <input type="date" id="pStart" class="w-full p-3 rounded-xl outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-500 font-bold block mb-1">סיום</label>
+                    <input type="date" id="pEnd" class="w-full p-3 rounded-xl outline-none">
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <label class="text-[10px] text-slate-500 font-bold block mb-1">תקציב (₪)</label>
+                <input type="number" id="pBudget" value="0" class="w-full p-4 rounded-xl outline-none">
+            </div>
+
+            <button onclick="saveProject()" class="w-full py-4 bg-purple-600 text-white font-black rounded-2xl shadow-lg">צור פרויקט</button>
+        </div>
+    </div>
+
+    <div id="partnerModal" class="fixed inset-0 z-[120] hidden items-center justify-center modal-bg p-4">
+        <div class="glass w-full max-w-sm rounded-[32px] p-8">
+            <h3 class="text-xl font-black mb-2">ניהול שותפים</h3>
+            <p class="text-[10px] text-slate-400 mb-6">השותף יוכל לראות ולערוך את כל הפרויקטים שלך.</p>
+            <input type="email" id="partnerEmail" placeholder="מייל השותף להוספה" class="w-full p-4 rounded-xl outline-none mb-6 text-left" dir="ltr">
+            <div class="flex gap-3">
+                <button onclick="addGlobalPartner()" class="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-2xl">שתף הכל</button>
+                <button onclick="closePartnerModal()" class="px-6 py-4 bg-white/5 rounded-2xl">סגור</button>
             </div>
         </div>
     </div>
@@ -92,13 +117,15 @@
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(), db = firebase.firestore();
-        let projects = [], isDashboard = false, budgetChart = null;
+        let userEmail = "";
 
         auth.onAuthStateChanged(user => {
             if (user) {
+                userEmail = user.email.toLowerCase();
                 document.getElementById('authScreen').classList.add('hidden');
                 document.getElementById('appScreen').classList.remove('hidden');
-                loadData(user.email.toLowerCase());
+                document.getElementById('pOwnerDisplay').innerText = `👤 ${userEmail}`;
+                loadData();
             } else {
                 document.getElementById('authScreen').classList.remove('hidden');
                 document.getElementById('appScreen').classList.add('hidden');
@@ -117,64 +144,62 @@
 
         function openProjectModal() { document.getElementById('projectModal').classList.replace('hidden', 'flex'); }
         function closeProjectModal() { document.getElementById('projectModal').classList.replace('flex', 'hidden'); }
+        function openPartnerModal() { document.getElementById('partnerModal').classList.replace('hidden', 'flex'); }
+        function closePartnerModal() { document.getElementById('partnerModal').classList.replace('flex', 'hidden'); }
 
-        function saveNewProject() {
-            const title = document.getElementById('pTitle').value;
-            const budget = document.getElementById('pBudget').value;
-            const partner = document.getElementById('pPartner').value;
-            
-            if(title && budget) {
-                const collaborators = [auth.currentUser.email.toLowerCase()];
-                if(partner) collaborators.push(partner.trim().toLowerCase());
+        async function saveProject() {
+            const project = {
+                title: document.getElementById('pTitle').value,
+                category: document.getElementById('pCat').value,
+                budget: Number(document.getElementById('pBudget').value),
+                startDate: document.getElementById('pStart').value,
+                endDate: document.getElementById('pEnd').value,
+                owner: userEmail,
+                collaborators: [userEmail],
+                createdAt: new Date()
+            };
 
-                db.collection('life_projects').add({
-                    title: title, budget: Number(budget),
-                    collaborators: collaborators,
-                    tasks: [], createdAt: new Date()
-                }).then(() => {
+            // בדיקה אם יש שותף גלובלי להוסיף אוטומטית
+            const userDoc = await db.collection('users').doc(userEmail).get();
+            if(userDoc.exists && userDoc.data().globalPartner) {
+                project.collaborators.push(userDoc.data().globalPartner);
+            }
+
+            if(project.title) {
+                db.collection('life_projects').add(project).then(() => {
                     closeProjectModal();
-                    document.getElementById('pTitle').value = '';
-                    document.getElementById('pBudget').value = '';
-                    document.getElementById('pPartner').value = '';
+                    alert("הפרויקט נוצר!");
                 });
             }
         }
 
-        function loadData(email) {
-            db.collection('life_projects').where('collaborators', 'array-contains', email)
+        function addGlobalPartner() {
+            const partner = document.getElementById('partnerEmail').value.trim().toLowerCase();
+            if(partner) {
+                db.collection('users').doc(userEmail).set({ globalPartner: partner }, { merge: true })
+                  .then(() => {
+                      alert("השותף נוסף! מעתה הוא יראה את כל הפרויקטים שתפתח.");
+                      closePartnerModal();
+                  });
+            }
+        }
+
+        function loadData() {
+            db.collection('life_projects').where('collaborators', 'array-contains', userEmail)
               .onSnapshot(snap => {
-                  projects = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                  render();
+                  const view = document.getElementById('projectsView');
+                  view.innerHTML = snap.docs.map(doc => {
+                      const p = doc.data();
+                      return `<div class="glass p-5 rounded-[24px]">
+                          <div class="flex justify-between items-start mb-2">
+                              <span class="text-[10px] px-2 py-1 bg-white/5 rounded-lg">${p.category}</span>
+                              <span class="text-xs font-bold text-purple-400">₪${(p.budget||0).toLocaleString()}</span>
+                          </div>
+                          <h3 class="text-lg font-bold">${p.title}</h3>
+                          <p class="text-[10px] text-slate-500 mt-2 italic">אחראי: ${p.owner === userEmail ? 'אני' : p.owner}</p>
+                      </div>`;
+                  }).join('');
               });
-        }
-
-        function render() {
-            const grid = document.getElementById('projectsView');
-            grid.innerHTML = projects.map(p => `<div class="dashboard-card p-6">
-                <h3 class="text-xl font-bold">${p.title}</h3>
-                <div class="text-xs text-slate-500 mt-1">תקציב: ₪${(p.budget || 0).toLocaleString()}</div>
-            </div>`).join('');
-            document.getElementById('statPlanned').innerText = `₪${projects.reduce((s,p)=>s+(p.budget||0),0).toLocaleString()}`;
-        }
-
-        function toggleView() {
-            isDashboard = !isDashboard;
-            document.getElementById('projectsView').classList.toggle('hidden', isDashboard);
-            document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard);
-            if(isDashboard) renderChart();
-        }
-
-        function renderChart() {
-            const ctx = document.getElementById('budgetChart').getContext('2d');
-            if(budgetChart) budgetChart.destroy();
-            budgetChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: projects.map(p => p.title),
-                    datasets: [{ label: 'תקציב', data: projects.map(p => p.budget), backgroundColor: '#6366f1' }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
         }
     </script>
 </body>
