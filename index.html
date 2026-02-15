@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V77 - Dashboard Edition</title>
+    <title>LifeOS V79 - Visual Progress</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -14,9 +14,11 @@
     <style>
         body { font-family: 'Heebo', sans-serif; background-color: #0f172a; color: white; text-align: right; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .dashboard-card { background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 28px; border: 1px solid rgba(255,255,255,0.05); }
+        .dashboard-card { background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 28px; border: 1px solid rgba(255,255,255,0.05); transition: all 0.3s ease; }
+        .progress-container { background: rgba(255,255,255,0.05); height: 8px; border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; transition: width 0.5s ease-in-out; }
         input, select { background: #1e293b !important; color: white !important; border: 1px solid rgba(255,255,255,0.1) !important; text-align: right; }
-        .ltr-input { text-align: left !important; dir: ltr !important; }
+        .ltr-text { text-align: left !important; dir: ltr !important; }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
@@ -24,9 +26,9 @@
     <div id="authScreen" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900 p-6">
         <div class="w-full max-w-sm glass p-8 rounded-[40px] text-center border-t-4 border-purple-500">
             <h1 class="text-4xl font-black mb-8 italic">Life<span class="text-purple-500">OS</span></h1>
-            <input type="email" id="emailInput" placeholder="אימייל" class="w-full px-5 py-4 rounded-2xl mb-3 outline-none focus:border-purple-500 ltr-input">
-            <input type="password" id="passInput" placeholder="סיסמה" class="w-full px-5 py-4 rounded-2xl mb-6 outline-none focus:border-purple-500 ltr-input">
-            <button onclick="handleLogin()" class="w-full py-4 bg-purple-600 text-white font-bold rounded-2xl mb-4 shadow-lg">התחברות</button>
+            <input type="email" id="emailInput" placeholder="אימייל" class="w-full px-5 py-4 rounded-2xl mb-3 outline-none focus:border-purple-500 ltr-text text-left">
+            <input type="password" id="passInput" placeholder="סיסמה" class="w-full px-5 py-4 rounded-2xl mb-6 outline-none focus:border-purple-500 ltr-text text-left">
+            <button onclick="handleLogin()" class="w-full py-4 bg-purple-600 text-white font-bold rounded-2xl mb-4 shadow-lg shadow-purple-500/20">התחברות</button>
             <button onclick="handleSignup()" class="text-slate-500 text-xs underline">צור חשבון חדש</button>
         </div>
     </div>
@@ -38,15 +40,14 @@
                 <h1 class="text-xl font-black italic">LifeOS</h1>
             </div>
             <div class="flex gap-2">
-                <button onclick="toggleView()" id="viewBtn" class="px-4 py-2 bg-purple-600/20 text-purple-400 rounded-xl text-[10px] font-black border border-purple-500/30">דשבורד</button>
+                <button onclick="toggleView()" id="viewBtn" class="px-4 py-2 bg-purple-600/20 text-purple-400 rounded-xl text-[10px] font-black border border-purple-500/30 uppercase">דשבורד</button>
                 <button onclick="auth.signOut()" class="w-10 h-10 rounded-xl bg-white/5 text-slate-500 flex items-center justify-center"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
 
         <main class="flex-1 overflow-y-auto p-6">
             <div id="projectsView" class="grid grid-cols-1 gap-4 pb-24"></div>
-
-            <div id="dashboardView" class="hidden space-y-6 pb-24">
+            <div id="dashboardView" class="hidden space-y-6 pb-24 text-center">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="dashboard-card p-5 border-r-4 border-indigo-500">
                         <span class="text-[10px] text-slate-500 font-bold block uppercase">תקציב כולל</span>
@@ -57,9 +58,7 @@
                         <div class="text-xl font-black text-rose-400 mt-1" id="totalSpent">₪0</div>
                     </div>
                 </div>
-                <div class="dashboard-card p-5 h-80">
-                    <canvas id="mainChart"></canvas>
-                </div>
+                <div class="dashboard-card p-5 h-80"><canvas id="mainChart"></canvas></div>
             </div>
         </main>
 
@@ -74,6 +73,7 @@
             <h2 id="detailTitle" class="text-xl font-black"></h2>
             <span id="detailCat" class="text-[10px] px-2 py-1 bg-purple-500/20 rounded-lg text-purple-300 font-bold"></span>
         </div>
+        <div id="detailProgressContainer" class="mb-6"></div>
         <div class="grid grid-cols-2 gap-4 mb-6">
             <div class="glass p-4 rounded-3xl border-r-4 border-indigo-500">
                 <span class="text-[10px] text-slate-500 font-bold block">תקציב</span>
@@ -87,14 +87,14 @@
         <div class="glass p-5 rounded-[32px] mb-6 border border-white/5">
             <div class="flex gap-2">
                 <input type="text" id="taskName" placeholder="תיאור הוצאה" class="flex-1 p-3 rounded-xl outline-none text-sm">
-                <input type="number" id="taskPrice" placeholder="₪" class="w-20 p-3 rounded-xl outline-none text-center font-bold ltr-input">
-                <button onclick="addTask()" class="w-12 bg-purple-600 rounded-xl flex items-center justify-center shadow-lg"><i class="fas fa-plus"></i></button>
+                <input type="number" id="taskPrice" placeholder="₪" class="w-20 p-3 rounded-xl outline-none text-center font-bold ltr-text">
+                <button onclick="addTask()" class="w-12 bg-purple-600 rounded-xl flex items-center justify-center"><i class="fas fa-plus"></i></button>
             </div>
         </div>
         <div id="tasksList" class="space-y-3 pb-10"></div>
     </div>
 
-    <div id="projectModal" class="fixed inset-0 z-[110] hidden items-center justify-center bg-black/90 backdrop-blur-sm p-4">
+    <div id="projectModal" class="fixed inset-0 z-[110] hidden items-center justify-center bg-black/90 p-4">
         <div class="glass w-full max-w-md rounded-[32px] p-6 relative">
             <button onclick="closeProjectModal()" class="absolute top-4 left-4 text-slate-500"><i class="fas fa-times"></i></button>
             <h3 class="text-xl font-black mb-6 text-center">פרויקט חדש</h3>
@@ -105,11 +105,7 @@
                 <div id="pOwnerDisplay" class="w-full p-3 rounded-xl bg-slate-800 text-[10px] truncate text-slate-500 border border-white/5 flex items-center justify-center"></div>
             </div>
             <input type="text" id="pTitle" placeholder="שם הפרויקט" class="w-full p-4 rounded-xl outline-none text-sm mb-4">
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <input type="date" id="pStart" class="w-full p-3 rounded-xl outline-none text-xs ltr-input">
-                <input type="date" id="pEnd" class="w-full p-3 rounded-xl outline-none text-xs ltr-input">
-            </div>
-            <input type="number" id="pBudget" value="0" class="w-full p-4 rounded-xl outline-none font-bold text-lg ltr-input mb-8">
+            <input type="number" id="pBudget" value="0" class="w-full p-4 rounded-xl outline-none font-bold text-lg ltr-text mb-8">
             <button onclick="saveProject()" class="w-full py-4 bg-purple-600 text-white font-black rounded-2xl shadow-xl">צור פרויקט</button>
         </div>
     </div>
@@ -148,8 +144,6 @@
             await db.collection('life_projects').add({
                 title, category: document.getElementById('pCat').value,
                 budget: Number(document.getElementById('pBudget').value),
-                startDate: document.getElementById('pStart').value,
-                endDate: document.getElementById('pEnd').value,
                 owner: userEmail, collaborators: [userEmail], tasks: [], createdAt: new Date()
             });
             closeProjectModal();
@@ -164,32 +158,72 @@
               });
         }
 
+        function getProgressData(p) {
+            const spent = (p.tasks || []).reduce((s, t) => s + Number(t.price || 0), 0);
+            const percent = Math.min((spent / p.budget) * 100, 100).toFixed(0);
+            let color = 'bg-purple-500';
+            if (percent > 80) color = 'bg-orange-500';
+            if (spent > p.budget) color = 'bg-rose-500';
+            return { spent, percent, color };
+        }
+
         function renderProjects() {
             const view = document.getElementById('projectsView');
             view.innerHTML = projects.map(p => {
-                const spent = (p.tasks || []).reduce((s, t) => s + (t.price || 0), 0);
-                return `<div onclick="openProjectDetail('${p.id}')" class="glass p-6 rounded-[32px] mb-4 border-r-4 border-purple-500 shadow-xl active:scale-95 transition">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="text-[10px] px-2 py-1 bg-white/5 rounded-lg text-slate-400 font-black uppercase">${p.category}</span>
-                        <span class="text-sm font-black text-purple-400 italic">₪${p.budget.toLocaleString()}</span>
+                const { spent, percent, color } = getProgressData(p);
+                return `<div onclick="openProjectDetail('${p.id}')" class="dashboard-card p-6 mb-4 active:scale-95">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-[10px] px-2 py-1 bg-white/5 rounded-lg text-slate-400 font-bold uppercase">${p.category}</span>
+                        <span class="text-sm font-black text-white italic">₪${Number(p.budget).toLocaleString()}</span>
                     </div>
-                    <h3 class="text-xl font-bold mb-1">${p.title}</h3>
-                    <p class="text-[11px] text-slate-500 font-bold">נותר: <span class="${(p.budget-spent) < 0 ? 'text-rose-500' : 'text-emerald-400'}">₪${(p.budget-spent).toLocaleString()}</span></p>
+                    <h3 class="text-xl font-bold mb-4">${p.title}</h3>
+                    <div class="progress-container mb-2"><div class="progress-fill ${color}" style="width: ${percent}%"></div></div>
+                    <div class="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
+                        <span>נוצל: ${percent}%</span>
+                        <span>נותר: ₪${(p.budget - spent).toLocaleString()}</span>
+                    </div>
                 </div>`;
             }).join('');
+        }
+
+        function openProjectDetail(id) {
+            currentProjectId = id;
+            document.getElementById('projectDetailModal').classList.remove('hidden');
+            const p = projects.find(x => x.id === id);
+            const { spent, percent, color } = getProgressData(p);
+            
+            document.getElementById('detailTitle').innerText = p.title;
+            document.getElementById('detailCat').innerText = p.category;
+            document.getElementById('detailBudget').innerText = `₪${Number(p.budget).toLocaleString()}`;
+            document.getElementById('detailProgressContainer').innerHTML = `
+                <div class="progress-container mb-2"><div class="progress-fill ${color}" style="width: ${percent}%"></div></div>
+                <p class="text-[10px] text-center text-slate-500 font-bold">נוצלו ${percent}% מהתקציב</p>`;
+            renderTasks(p);
+        }
+
+        function renderTasks(p) {
+            const spent = (p.tasks || []).reduce((s, t) => s + Number(t.price || 0), 0);
+            const remaining = Number(p.budget) - spent;
+            const rEl = document.getElementById('detailRemaining');
+            rEl.innerText = `₪${remaining.toLocaleString()}`;
+            rEl.className = `text-lg font-black italic ${remaining < 0 ? 'text-rose-500' : 'text-emerald-400'}`;
+            document.getElementById('tasksList').innerHTML = (p.tasks || []).map((t, i) => `
+                <div class="glass p-4 rounded-2xl flex justify-between items-center">
+                    <span class="text-sm font-bold text-slate-200">${t.name}</span>
+                    <span class="text-sm font-black text-white italic">₪${Number(t.price).toLocaleString()}</span>
+                </div>`).reverse().join('');
         }
 
         function toggleView() {
             isDashboard = !isDashboard;
             document.getElementById('projectsView').classList.toggle('hidden', isDashboard);
             document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard);
-            document.getElementById('viewBtn').innerText = isDashboard ? "פרויקטים" : "דשבורד";
             if(isDashboard) renderDashboard();
         }
 
         function renderDashboard() {
-            const totalP = projects.reduce((s,p) => s + (p.budget||0), 0);
-            const totalS = projects.reduce((s,p) => s + (p.tasks||[]).reduce((ts,t)=>ts+(t.price||0),0), 0);
+            const totalP = projects.reduce((sum, p) => sum + Number(p.budget || 0), 0);
+            const totalS = projects.reduce((sum, p) => sum + (p.tasks || []).reduce((tSum, t) => tSum + Number(t.price || 0), 0), 0);
             document.getElementById('totalPlanned').innerText = `₪${totalP.toLocaleString()}`;
             document.getElementById('totalSpent').innerText = `₪${totalS.toLocaleString()}`;
 
@@ -200,62 +234,26 @@
                 data: {
                     labels: projects.map(p => p.title),
                     datasets: [
-                        { label: 'תקציב', data: projects.map(p => p.budget), backgroundColor: '#6366f1', borderRadius: 8 },
-                        { label: 'בוצע', data: projects.map(p => (p.tasks||[]).reduce((ts,t)=>ts+(t.price||0),0)), backgroundColor: '#f43f5e', borderRadius: 8 }
+                        { label: 'תקציב', data: projects.map(p => Number(p.budget)), backgroundColor: '#6366f1', borderRadius: 8 },
+                        { label: 'בוצע', data: projects.map(p => (p.tasks||[]).reduce((ts,t)=>ts+Number(t.price),0)), backgroundColor: '#f43f5e', borderRadius: 8 }
                     ]
                 },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } } } }
+                options: { responsive: true, maintainAspectRatio: false }
             });
         }
 
-        function openProjectDetail(id) {
-            currentProjectId = id;
-            document.getElementById('projectDetailModal').classList.remove('hidden');
-            const p = projects.find(x => x.id === id);
-            document.getElementById('detailTitle').innerText = p.title;
-            document.getElementById('detailCat').innerText = p.category;
-            document.getElementById('detailBudget').innerText = `₪${p.budget.toLocaleString()}`;
-            renderTasks(p);
-        }
-
-        function renderTasks(p) {
-            const spent = (p.tasks || []).reduce((s, t) => s + (t.price || 0), 0);
-            const remaining = p.budget - spent;
-            const rEl = document.getElementById('detailRemaining');
-            rEl.innerText = `₪${remaining.toLocaleString()}`;
-            rEl.className = `text-lg font-black italic ${remaining < 0 ? 'text-rose-500' : 'text-emerald-400'}`;
-
-            document.getElementById('tasksList').innerHTML = (p.tasks || []).map((t, i) => `
-                <div class="glass p-4 rounded-2xl flex justify-between items-center border border-white/5">
-                    <span class="text-sm font-bold text-slate-200">${t.name}</span>
-                    <div class="flex gap-4 items-center">
-                        <span class="text-sm font-black text-white italic">₪${t.price.toLocaleString()}</span>
-                        <button onclick="deleteTask(${i})" class="text-rose-500"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>`).reverse().join('');
-        }
-
         function closeProjectDetail() { document.getElementById('projectDetailModal').classList.add('hidden'); }
-
         async function addTask() {
             const name = document.getElementById('taskName').value;
             const price = Number(document.getElementById('taskPrice').value);
             if(name && price) {
-                const p = projects.find(x => x.id === currentProjectId);
-                const tasks = p.tasks || [];
+                const docRef = db.collection('life_projects').doc(currentProjectId);
+                const doc = await docRef.get();
+                const tasks = doc.data().tasks || [];
                 tasks.push({ name, price, date: new Date() });
-                await db.collection('life_projects').doc(currentProjectId).update({ tasks });
-                document.getElementById('taskName').value = '';
-                document.getElementById('taskPrice').value = '';
-                renderTasks(projects.find(x => x.id === currentProjectId));
+                await docRef.update({ tasks });
+                document.getElementById('taskName').value = ''; document.getElementById('taskPrice').value = '';
             }
-        }
-
-        async function deleteTask(index) {
-            const p = projects.find(x => x.id === currentProjectId);
-            p.tasks.splice(index, 1);
-            await db.collection('life_projects').doc(currentProjectId).update({ tasks: p.tasks });
-            renderTasks(p);
         }
     </script>
 </body>
