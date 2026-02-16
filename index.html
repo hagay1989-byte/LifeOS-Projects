@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V99 - Full Restore</title>
+    <title>LifeOS V98 - Gantt Vision</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -11,37 +11,67 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <style>
-        body { font-family: 'Heebo', sans-serif; background: #0f172a; color: white; text-align: right; }
-        .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px; }
-        .glass-card { background: rgba(255, 255, 255, 0.05); border-radius: 20px; transition: 0.3s; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.05); }
-        .progress-bar { background: rgba(255,255,255,0.1); height: 6px; border-radius: 10px; overflow: hidden; }
-        .progress-fill { height: 100%; background: #fff; transition: 0.8s ease; }
-        .nav-btn { width: 40px; height: 40px; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; }
+        body { font-family: 'Heebo', sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); color: white; text-align: right; min-height: 100vh; overflow-x: hidden; }
+        .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px; }
+        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 32px; transition: all 0.3s ease; cursor: pointer; }
+        .nav-btn { width: 44px; height: 44px; border-radius: 15px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        /* Gantt Layout */
+        .gantt-grid { border-radius: 20px; background: rgba(255,255,255,0.02); padding: 20px; overflow-x: auto; }
+        .quarter-header { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 10px; min-width: 800px; text-align: center; font-size: 10px; font-weight: 900; opacity: 0.6; }
+        .month-sub-header { display: grid; grid-template-columns: repeat(12, 1fr); text-align: center; font-size: 9px; opacity: 0.3; min-width: 800px; }
+        .gantt-row { display: grid; grid-template-columns: 120px 1fr; align-items: center; margin: 20px 0; min-width: 800px; }
+        .gantt-bar { height: 14px; background: #fff; border-radius: 20px; box-shadow: 0 0 15px rgba(255,255,255,0.2); position: absolute; }
+        .receipt-thumb { width: 38px; height: 38px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,0.2); }
+        
+        ::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="p-4 min-h-screen">
-    <div id="appScreen" class="glass-panel w-full max-w-4xl mx-auto min-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+<body class="p-4 flex justify-center items-center">
+
+    <div id="authScreen" class="fixed inset-0 z-[500] flex items-center justify-center bg-slate-900 text-center">
+        <div class="glass-panel p-10 w-full max-w-sm">
+            <h1 class="text-4xl font-black mb-10 italic">LifeOS</h1>
+            <input type="email" id="emailInput" placeholder="אימייל" class="w-full mb-3 text-left ltr" dir="ltr">
+            <input type="password" id="passInput" placeholder="סיסמה" class="w-full mb-8 text-left ltr" dir="ltr">
+            <button onclick="handleAuth('login')" class="w-full py-4 bg-white text-slate-900 font-black rounded-2xl mb-2">כניסה</button>
+        </div>
+    </div>
+
+    <div id="appScreen" class="hidden glass-panel w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden relative shadow-2xl">
         <header class="p-6 flex justify-between items-center border-b border-white/5">
-            <div class="flex gap-3">
-                <button onclick="location.reload()" class="nav-btn"><i class="fas fa-home"></i></button>
-                <button onclick="toggleGantt()" class="nav-btn"><i class="fas fa-calendar-alt"></i></button>
+            <div class="flex gap-3 items-center">
+                <button onclick="goHome()" class="nav-btn"><i class="fas fa-home"></i></button>
+                <button onclick="toggleGantt()" class="nav-btn" id="ganttNavBtn"><i class="fas fa-calendar-alt"></i></button>
+                <div class="mr-3"><h1 class="text-xl font-black italic">LifeOS</h1></div>
             </div>
-            <h1 class="text-xl font-black italic italic">LifeOS</h1>
+            <button onclick="auth.signOut()" class="text-white/20 p-2"><i class="fas fa-sign-out-alt"></i></button>
         </header>
 
-        <main class="p-6 flex-1 overflow-y-auto">
-            <div id="projectsView" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-            <div id="ganttView" class="hidden">
-                <h2 class="text-xl font-bold mb-4">ציר זמן רבעוני</h2>
-                <div id="ganttRows" class="space-y-4 bg-white/5 p-4 rounded-2xl"></div>
+        <main class="flex-1 overflow-y-auto p-6">
+            <div id="projectsView" class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-24"></div>
+            
+            <div id="ganttView" class="hidden space-y-6 pb-24">
+                <h2 class="text-2xl font-black italic">ציר זמן רבעוני</h2>
+                <div class="gantt-grid">
+                    <div class="quarter-header"><span>רבעון 1</span><span>רבעון 2</span><span>רבעון 3</span><span>רבעון 4</span></div>
+                    <div class="month-sub-header"><span>ינ</span><span>פב</span><span>מר</span><span>אפ</span><span>מאי</span><span>יו</span><span>יול</span><span>אוג</span><span>ספ</span><span>אוק</span><span>נו</span><span>דצ</span></div>
+                    <div id="ganttRows" class="mt-6"></div>
+                </div>
             </div>
         </main>
     </div>
 
-    <div id="detailModal" class="fixed inset-0 z-50 hidden bg-slate-950 p-6 overflow-y-auto">
-        <button onclick="closeDetail()" class="nav-btn mb-6"><i class="fas fa-arrow-right"></i></button>
-        <h2 id="detailTitle" class="text-3xl font-black mb-8"></h2>
-        <div id="tasksList" class="space-y-3"></div>
+    <div id="projectDetailModal" class="fixed inset-0 z-[300] hidden flex-col bg-slate-950 p-6 overflow-y-auto">
+        <header class="flex justify-between items-center mb-8">
+            <button onclick="closeProjectDetail()" class="nav-btn"><i class="fas fa-arrow-right"></i></button>
+            <h2 id="detailTitle" class="text-2xl font-black italic"></h2>
+        </header>
+        <div id="tasksList" class="space-y-4 pb-48"></div>
+        <div class="fixed bottom-6 left-6 right-6 glass-panel p-4 flex flex-col gap-2">
+            <div class="flex gap-2"><input type="text" id="taskName" placeholder="מה קנינו?" class="flex-1 p-3"><input type="number" id="taskPrice" placeholder="₪" class="w-20 text-center font-bold" dir="ltr"></div>
+            <div class="flex gap-2"><input type="text" id="taskLink" placeholder="לינק לתמונה מה-Google Photos" class="flex-1 p-3 text-[10px]"><button onclick="addTask()" class="w-12 h-12 bg-white text-slate-900 rounded-xl flex items-center justify-center shadow-xl"><i class="fas fa-plus"></i></button></div>
+        </div>
     </div>
 
     <script>
@@ -51,65 +81,52 @@
             messagingSenderId: "941533299304", appId: "1:941533299304:web:92f8940e93a96b1f8b71dd" 
         };
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore(), auth = firebase.auth();
-        let projects = [], userEmail = "atz@gmail.com"; // וודא שהאימייל שלך נכון
+        const auth = firebase.auth(), db = firebase.firestore();
+        let projects = [], currentProjectId = null, userEmail = "", isGantt = false;
+
+        auth.onAuthStateChanged(user => {
+            if (user) { userEmail = user.email.toLowerCase(); document.getElementById('authScreen').classList.add('hidden'); document.getElementById('appScreen').classList.replace('hidden', 'flex'); loadData(); }
+            else { document.getElementById('authScreen').classList.remove('hidden'); document.getElementById('appScreen').classList.replace('flex', 'hidden'); }
+        });
 
         function loadData() {
-            // חזרנו ל-family_plans - כאן הנתונים שלך נמצאים!
-            db.collection('family_plans').onSnapshot(snap => {
+            db.collection('life_projects').where('collaborators', 'array-contains', userEmail).onSnapshot(snap => {
                 projects = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                renderUI();
+                renderUI(); if(isGantt) renderGantt(); if(currentProjectId) renderProjectInfo();
             });
-        }
-
-        function renderUI() {
-            const container = document.getElementById('projectsView');
-            container.innerHTML = projects.map(p => {
-                const spent = (p.tasks || []).reduce((s, t) => s + Number(t.price), 0);
-                const perc = (spent / p.limit) * 100;
-                return `
-                    <div class="glass-card p-6" onclick="openDetail('${p.id}')">
-                        <h3 class="text-xl font-bold mb-4">${p.name}</h3>
-                        <div class="progress-bar mb-2"><div class="progress-fill" style="width: ${perc}%"></div></div>
-                        <div class="flex justify-between text-[10px] opacity-40 font-bold uppercase">
-                            <span>₪${spent.toLocaleString()} / ₪${Number(p.limit).toLocaleString()}</span>
-                        </div>
-                    </div>`;
-            }).join('');
-        }
-
-        function openDetail(id) {
-            const p = projects.find(x => x.id === id);
-            document.getElementById('detailTitle').innerText = p.name;
-            document.getElementById('tasksList').innerHTML = (p.tasks || []).map(t => `
-                <div class="glass-card p-4 flex justify-between">
-                    <span>${t.name}</span>
-                    <span class="font-bold">₪${t.price}</span>
-                </div>
-            `).join('');
-            document.getElementById('detailModal').classList.remove('hidden');
-        }
-
-        function closeDetail() { document.getElementById('detailModal').classList.add('hidden'); }
-        function toggleGantt() {
-            document.getElementById('projectsView').classList.toggle('hidden');
-            document.getElementById('ganttView').classList.toggle('hidden');
-            renderGantt();
         }
 
         function renderGantt() {
             const container = document.getElementById('ganttRows');
-            container.innerHTML = projects.map(p => `
-                <div class="flex items-center gap-4">
-                    <div class="w-20 text-[10px] font-bold opacity-50 truncate">${p.name}</div>
-                    <div class="flex-1 h-3 bg-white/5 rounded-full relative overflow-hidden">
-                        <div class="absolute h-full bg-white rounded-full" style="right: 10%; width: 40%"></div>
-                    </div>
-                </div>
-            `).join('');
+            const active = projects.filter(p => !p.isArchived && p.startDate && p.endDate);
+            container.innerHTML = active.map(p => {
+                const start = new Date(p.startDate), end = new Date(p.endDate);
+                const left = (start.getMonth() / 12) * 100, width = ((end.getMonth() - start.getMonth() + 1) / 12) * 100;
+                return `<div class="gantt-row"><div class="gantt-label font-bold text-xs">${p.title}</div><div class="relative h-4 bg-white/5 rounded-full overflow-hidden"><div class="gantt-bar" style="right:${left}%; width:${width}%"></div></div></div>`;
+            }).join('');
         }
 
-        auth.onAuthStateChanged(user => { if(user) loadData(); else loadData(); }); // למקרה שאין לאוגין
+        async function addTask() {
+            const name = document.getElementById('taskName').value, price = Number(document.getElementById('taskPrice').value), img = document.getElementById('taskLink').value;
+            if(!name || !price) return;
+            const p = projects.find(x => x.id === currentProjectId);
+            const tasks = [...(p.tasks || []), { name, price, img, date: new Date().toISOString() }];
+            await db.collection('life_projects').doc(currentProjectId).update({ tasks });
+            document.getElementById('taskName').value = ''; document.getElementById('taskPrice').value = ''; document.getElementById('taskLink').value = '';
+        }
+
+        function renderProjectInfo() {
+            const p = projects.find(x => x.id === currentProjectId); if(!p) return;
+            document.getElementById('detailTitle').innerText = p.title;
+            document.getElementById('tasksList').innerHTML = (p.tasks || []).map(t => `<div class="glass-card p-5 flex justify-between items-center border border-white/5"><div class="flex items-center gap-4">${t.img ? `<img src="${t.img}" class="receipt-thumb">` : '<div class="w-[38px]"></div>'}<span>${t.name}</span></div><span class="font-black">₪${Number(t.price).toLocaleString()}</span></div>`).reverse().join('');
+        }
+
+        function toggleGantt() { isGantt = !isGantt; document.getElementById('projectsView').classList.toggle('hidden', isGantt); document.getElementById('ganttView').classList.toggle('hidden', !isGantt); if(isGantt) renderGantt(); }
+        function openProjectDetail(id) { currentProjectId = id; document.getElementById('projectDetailModal').classList.replace('hidden', 'flex'); renderProjectInfo(); }
+        function closeProjectDetail() { document.getElementById('projectDetailModal').classList.replace('flex', 'hidden'); currentProjectId = null; }
+        function goHome() { isGantt = false; document.getElementById('ganttView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
+        function renderUI() { const v = document.getElementById('projectsView'); v.innerHTML = projects.filter(p => !p.isArchived).map(p => `<div class="glass-card p-8" onclick="openProjectDetail('${p.id}')"><h3 class="text-2xl font-black italic">${p.title}</h3></div>`).join(''); }
+        async function handleAuth(t) { const email = document.getElementById('emailInput').value, pass = document.getElementById('passInput').value; try { await auth.signInWithEmailAndPassword(email, pass); } catch(e) { alert(e.message); } }
     </script>
 </body>
 </html>
