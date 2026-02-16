@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V94 - Background Fix</title>
+    <title>LifeOS V110 - Perfect Centering</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,19 +12,33 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <style>
-        body { font-family: 'Heebo', sans-serif; background: radial-gradient(circle at top right, #1e1b4b, #0f172a 80%); background-attachment: fixed; color: white; text-align: right; min-height: 100vh; overflow-x: hidden; }
+        body { font-family: 'Heebo', sans-serif; background: radial-gradient(circle at top right, #1e1b4b, #0f172a 80%); background-attachment: fixed; color: white; text-align: right; min-height: 100vh; margin: 0; }
         .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px; }
-        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 32px; transition: all 0.3s ease; position: relative; z-index: 10; cursor: pointer; }
+        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 32px; transition: all 0.3s ease; cursor: pointer; }
         
-        /* תיקון הרקע של המודאלים - טשטוש עמוק ויוקרתי */
+        /* תיקון מרכוז מודאלים לכל המכשירים */
         .modal-overlay { 
-            background: rgba(10, 15, 28, 0.7) !important; 
-            backdrop-filter: blur(15px) !important; 
-            -webkit-backdrop-filter: blur(15px) !important;
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(10, 15, 28, 0.96); 
+            backdrop-filter: blur(20px); 
+            z-index: 1000; 
+            padding: 20px;
         }
 
-        select option { background-color: #1e1b4b !important; color: white !important; }
-        input, select { background: rgba(255, 255, 255, 0.05) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 16px !important; color: white !important; padding: 12px !important; }
+        /* צבע כתב כהה בתיבות קלט */
+        input, select { 
+            background: rgba(255, 255, 255, 0.9) !important; 
+            border: 1px solid rgba(255, 255, 255, 0.1) !important; 
+            border-radius: 16px !important; 
+            color: #0f172a !important; 
+            padding: 12px !important; 
+            width: 100%;
+        }
+        
         .progress-bar { background: rgba(255,255,255,0.1); height: 6px; border-radius: 10px; overflow: hidden; }
         .progress-fill { height: 100%; transition: width 0.8s ease; background: #fff; }
         ::-webkit-scrollbar { display: none; }
@@ -37,56 +51,43 @@
             <h1 class="text-4xl font-black mb-10 italic">LifeOS</h1>
             <input type="email" id="emailInput" placeholder="אימייל" class="w-full mb-3 text-left ltr" dir="ltr">
             <input type="password" id="passInput" placeholder="סיסמה" class="w-full mb-8 text-left ltr" dir="ltr">
-            <div class="flex gap-2">
-                <button onclick="handleAuth('login')" class="flex-1 py-4 bg-white text-slate-900 font-black rounded-2xl">כניסה</button>
-                <button onclick="handleAuth('signup')" class="flex-1 py-4 border border-white/20 font-black rounded-2xl">הרשמה</button>
-            </div>
+            <button onclick="handleAuth('login')" class="w-full py-4 bg-white text-slate-900 font-black rounded-2xl">כניסה</button>
         </div>
     </div>
 
     <div id="appScreen" class="hidden glass-panel w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden shadow-2xl relative">
         <header class="p-6 flex justify-between items-center border-b border-white/5">
             <div class="flex gap-3 items-center">
-                <button onclick="goHome()" class="p-3 bg-white/5 rounded-xl"><i class="fas fa-home"></i></button>
-                <button onclick="openPartnerModal()" class="p-3 bg-white/5 rounded-xl"><i class="fas fa-fingerprint"></i></button>
-                <div class="mr-3">
-                    <h1 id="headerTitle" class="text-xl font-black italic">LifeOS</h1>
-                    <span id="partnerStatus" class="text-[7px] text-white/30 uppercase mt-1 block"></span>
-                </div>
+                <button onclick="goHome()" class="p-3 bg-white/5 rounded-xl border border-white/10"><i class="fas fa-home"></i></button>
+                <button onclick="toggleGantt()" class="p-3 bg-white/5 rounded-xl border border-white/10"><i class="fas fa-calendar-alt"></i></button>
+                <h1 class="text-xl font-black italic mr-2">LifeOS</h1>
             </div>
-            <div class="flex gap-2">
-                <button onclick="toggleArchiveView()" id="archiveBtn" class="px-4 py-2 glass-card text-[9px] font-bold">📦 ארכיון</button>
-                <button onclick="toggleView()" id="viewBtn" class="px-5 py-2 glass-card text-[9px] font-black uppercase tracking-widest border border-white/10">דשבורד</button>
-                <button onclick="auth.signOut()" class="text-white/20 p-2"><i class="fas fa-sign-out-alt"></i></button>
-            </div>
+            <button onclick="auth.signOut()" class="text-white/20 p-2"><i class="fas fa-sign-out-alt"></i></button>
         </header>
 
-        <main class="flex-1 overflow-y-auto p-6" id="projectsContainer">
+        <main class="flex-1 overflow-y-auto p-6">
             <div id="projectsView" class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-24"></div>
-            <div id="dashboardView" class="hidden space-y-6 pb-24">
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="glass-card p-6 text-center"><span class="text-[9px] text-white/40 block mb-1">תכנון</span><div class="text-xl font-black" id="totalPlanned">₪0</div></div>
-                    <div class="glass-card p-6 text-center"><span class="text-[9px] text-white/40 block mb-1">נוצל</span><div class="text-xl font-black text-purple-400" id="totalSpent">₪0</div></div>
-                </div>
-                <div class="glass-card p-6 h-72"><canvas id="mainChart"></canvas></div>
+            <div id="ganttView" class="hidden space-y-6 pb-24">
+                <h2 class="text-2xl font-black italic mb-6 text-center">ציר זמן רבעוני</h2>
+                <div id="ganttRows" class="space-y-4 bg-white/5 p-6 rounded-3xl"></div>
             </div>
         </main>
 
-        <button id="addBtn" onclick="openProjectModal()" class="absolute bottom-8 left-8 w-16 h-16 bg-white text-slate-900 rounded-2xl flex items-center justify-center shadow-2xl z-40 active:scale-90 transition">
+        <button onclick="openNewProjectModal()" class="absolute bottom-8 left-8 w-16 h-16 bg-white text-slate-900 rounded-2xl flex items-center justify-center shadow-2xl z-40 active:scale-90 transition">
             <i class="fas fa-plus text-xl"></i>
         </button>
     </div>
 
-    <div id="projectModal" class="fixed inset-0 z-[1000] hidden items-center justify-center modal-overlay p-6">
-        <div class="glass-panel p-8 w-full max-w-md relative">
-            <button onclick="closeProjectModal()" class="absolute top-6 left-6 text-white/40"><i class="fas fa-times"></i></button>
-            <h3 id="modalTitle" class="text-xl font-black mb-8 text-center italic">פרויקט חדש</h3>
-            <select id="pCat" class="w-full mb-4 text-sm">
-                <option>🏠 שיפוץ</option><option>✈️ טיול</option><option>💼 עבודה</option><option>🛒 קניות</option><option>👩‍🍳 עסק</option><option>🧸 משפחה</option>
-            </select>
-            <input type="text" id="pTitle" placeholder="שם הפרויקט" class="w-full mb-4 text-sm">
-            <div class="grid grid-cols-2 gap-3 mb-6"><input type="date" id="pStart" class="w-full text-xs"><input type="date" id="pEnd" class="w-full text-xs"></div>
-            <input type="number" id="pBudget" placeholder="תקציב (₪)" class="w-full mb-8 text-xl font-black text-left" dir="ltr">
+    <div id="newProjectModal" class="hidden modal-overlay">
+        <div class="glass-panel p-8 w-full max-w-md relative text-right">
+            <button onclick="closeNewProjectModal()" class="absolute top-4 left-4 text-white/40"><i class="fas fa-times"></i></button>
+            <h3 class="text-xl font-black mb-8 text-center italic text-white">פרויקט חדש</h3>
+            <select id="pCat" class="mb-4"><option>🏠 שיפוץ</option><option>✈️ טיול</option><option>👩‍🍳 עסק</option></select>
+            <input type="text" id="pTitle" placeholder="שם הפרויקט" class="mb-4">
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <input type="date" id="pStart"><input type="date" id="pEnd">
+            </div>
+            <input type="number" id="pBudget" placeholder="תקציב (₪)" class="mb-8 text-xl font-black">
             <button onclick="saveProject()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">שמור</button>
         </div>
     </div>
@@ -99,7 +100,12 @@
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(), db = firebase.firestore();
-        let projects = [], currentProjectId = null, userEmail = "", isDashboard = false, isArchiveView = false;
+        let projects = [], currentProjectId = null, userEmail = "", isGantt = false;
+
+        async function handleAuth(type) {
+            const email = document.getElementById('emailInput').value.trim(), pass = document.getElementById('passInput').value;
+            try { await auth.signInWithEmailAndPassword(email, pass); } catch(e) { alert(e.message); }
+        }
 
         auth.onAuthStateChanged(user => {
             if (user) {
@@ -113,39 +119,45 @@
             }
         });
 
-        async function handleAuth(type) {
-            const email = document.getElementById('emailInput').value.trim(), pass = document.getElementById('passInput').value;
-            try { if(type === 'login') await auth.signInWithEmailAndPassword(email, pass); else await auth.createUserWithEmailAndPassword(email, pass); } catch(e) { alert(e.message); }
-        }
-
         function loadData() {
-            db.collection('life_projects').where('collaborators', 'array-contains', userEmail).onSnapshot(snap => {
+            db.collection('family_plans').onSnapshot(snap => {
                 projects = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                renderUI();
+                renderUI(); if(isGantt) renderGantt();
             });
         }
 
         function renderUI() {
-            const view = document.getElementById('projectsView');
-            const filtered = projects.filter(p => isArchiveView ? p.isArchived === true : !p.isArchived);
-            view.innerHTML = filtered.map(p => {
+            const container = document.getElementById('projectsView');
+            container.innerHTML = projects.filter(p => !p.isArchived).map(p => {
                 const spent = (p.tasks || []).reduce((s, t) => s + Number(t.price || 0), 0);
-                const percent = Math.min((spent / p.budget) * 100, 100);
-                return `<div class="glass-card p-8" onclick="openProjectDetail('${p.id}')">
-                    <h3 class="text-2xl font-black mb-6 italic">${p.title}</h3>
-                    <div class="progress-bar mb-3"><div class="progress-fill" style="width: ${percent}%"></div></div>
-                    <div class="text-[10px] font-bold text-white/30 uppercase">₪${spent.toLocaleString()} / ₪${p.budget.toLocaleString()}</div>
+                const perc = Math.min((spent / (p.budget || p.limit || 1)) * 100, 100);
+                return `<div class="glass-card p-8">
+                    <h3 class="text-2xl font-black mb-6 italic">${p.title || p.name}</h3>
+                    <div class="progress-bar mb-3"><div class="progress-fill" style="width: ${perc}%"></div></div>
+                    <div class="text-[10px] font-bold text-white/30 uppercase">₪${spent.toLocaleString()} / ₪${(p.budget || p.limit).toLocaleString()}</div>
                 </div>`;
             }).join('');
         }
 
-        function openProjectModal() { document.getElementById('projectModal').classList.remove('hidden'); }
-        function closeProjectModal() { document.getElementById('projectModal').classList.add('hidden'); }
-        function goHome() { isDashboard = false; document.getElementById('dashboardView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
+        function openNewProjectModal() { document.getElementById('newProjectModal').classList.remove('hidden'); }
+        function closeNewProjectModal() { document.getElementById('newProjectModal').classList.add('hidden'); }
+        function goHome() { isGantt = false; document.getElementById('ganttView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); }
+        function toggleGantt() { isGantt = !isGantt; document.getElementById('projectsView').classList.toggle('hidden', isGantt); document.getElementById('ganttView').classList.toggle('hidden', !isGantt); if(isGantt) renderGantt(); }
+        
         async function saveProject() {
-            const title = document.getElementById('pTitle').value, budget = Number(document.getElementById('pBudget').value);
-            await db.collection('life_projects').add({ title, budget, collaborators: [userEmail], tasks: [], isArchived: false, createdAt: new Date() });
-            closeProjectModal();
+            const title = document.getElementById('pTitle').value, budget = Number(document.getElementById('pBudget').value), start = document.getElementById('pStart').value, end = document.getElementById('pEnd').value;
+            if(!title) return;
+            await db.collection('family_plans').add({ title, budget, startDate: start, endDate: end, tasks: [], isArchived: false, createdAt: new Date() });
+            closeNewProjectModal();
+        }
+
+        function renderGantt() {
+            const container = document.getElementById('ganttRows');
+            container.innerHTML = projects.filter(p => !p.isArchived).map(p => {
+                const start = new Date(p.startDate || Date.now()), end = new Date(p.endDate || (Date.now() + 2592000000));
+                const left = (start.getMonth() / 12) * 100, width = ((end.getMonth() - start.getMonth() + 1) / 12) * 100;
+                return `<div class="flex items-center gap-4"><div class="w-20 text-[10px] font-bold opacity-50 truncate">${p.title || p.name}</div><div class="flex-1 h-3 bg-white/5 rounded-full relative overflow-hidden"><div class="absolute h-full bg-white rounded-full" style="right: ${left}%; width: ${width}%"></div></div></div>`;
+            }).join('');
         }
     </script>
 </body>
