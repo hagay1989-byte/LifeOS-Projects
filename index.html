@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V102 - Final Fix</title>
+    <title>LifeOS V104 - Full Features Restore</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -21,7 +21,7 @@
         }
         .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px; }
         .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 32px; transition: all 0.3s ease; cursor: pointer; }
-        .modal-overlay { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(15px); z-index: 1000; }
+        .modal-overlay { background: rgba(10, 15, 28, 0.96) !important; backdrop-filter: blur(20px); z-index: 1000; }
         .progress-bar { background: rgba(255,255,255,0.1); height: 6px; border-radius: 10px; overflow: hidden; }
         .progress-fill { height: 100%; transition: width 0.8s ease; background: #fff; }
         input, select { background: rgba(255, 255, 255, 0.05) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 16px !important; color: white !important; padding: 12px !important; }
@@ -37,6 +37,10 @@
                 <button onclick="toggleGantt()" class="p-3 bg-white/5 rounded-xl border border-white/10"><i class="fas fa-calendar-alt"></i></button>
                 <button onclick="openPartnerModal()" class="p-3 bg-white/5 rounded-xl border border-white/10 text-purple-400"><i class="fas fa-fingerprint"></i></button>
                 <h1 class="text-xl font-black italic mr-2">LifeOS</h1>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="toggleArchiveView()" id="archiveBtn" class="px-4 py-2 bg-white/5 rounded-xl text-[10px] font-bold border border-white/10">📦 ארכיון</button>
+                <button onclick="firebase.auth().signOut()" class="text-white/20 p-2"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
 
@@ -54,13 +58,19 @@
     </div>
 
     <div id="newProjectModal" class="fixed inset-0 hidden items-center justify-center modal-overlay p-6">
-        <div class="glass-panel p-10 w-full max-w-md relative">
+        <div class="glass-panel p-10 w-full max-w-md relative text-right">
             <h3 class="text-xl font-black mb-6 text-center italic">פרויקט חדש</h3>
-            <select id="pCat" class="w-full mb-4"><option>🏠 שיפוץ</option><option>✈️ טיול</option><option>👩‍🍳 עסק</option></select>
+            <select id="pCat" class="w-full mb-4">
+                <option>🏠 שיפוץ</option><option>✈️ טיול</option><option>👩‍🍳 עסק</option><option>🚗 רכב</option>
+            </select>
             <input type="text" id="pTitle" placeholder="שם הפרויקט" class="w-full mb-4">
+            <div class="grid grid-cols-2 gap-3 mb-4 text-xs">
+                <div><label class="block opacity-40 mb-1">התחלה</label><input type="date" id="pStart" class="w-full"></div>
+                <div><label class="block opacity-40 mb-1">סיום</label><input type="date" id="pEnd" class="w-full"></div>
+            </div>
             <input type="number" id="pBudget" placeholder="תקציב (₪)" class="w-full mb-8">
-            <button onclick="saveProject()" class="w-full py-4 bg-white text-slate-900 font-black rounded-2xl mb-2">שמור פרויקט</button>
-            <button onclick="closeNewProjectModal()" class="w-full py-2 text-white/30 text-xs">ביטול</button>
+            <button onclick="saveProject()" class="w-full py-4 bg-white text-slate-900 font-black rounded-2xl">שמור פרויקט</button>
+            <button onclick="closeNewProjectModal()" class="w-full py-2 text-white/30 text-xs mt-2">ביטול</button>
         </div>
     </div>
 
@@ -85,7 +95,7 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        let projects = [], currentProjectId = null, isGantt = false;
+        let projects = [], currentProjectId = null, isGantt = false, isArchiveView = false;
 
         function loadData() {
             db.collection('family_plans').onSnapshot(snap => {
@@ -96,29 +106,38 @@
 
         function renderUI() {
             const container = document.getElementById('projectsView');
-            container.innerHTML = projects.filter(p => !p.isArchived).map(p => {
+            const filtered = projects.filter(p => isArchiveView ? p.isArchived === true : !p.isArchived);
+            container.innerHTML = filtered.map(p => {
                 const spent = (p.tasks || []).reduce((s, t) => s + Number(t.price || 0), 0);
                 const perc = Math.min((spent / (p.budget || p.limit || 1)) * 100, 100);
                 return `<div class="glass-card p-8" onclick="openProjectDetail('${p.id}')">
-                    <h3 class="text-2xl font-black mb-6 italic">${p.title || p.name}</h3>
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-2xl font-black italic">${p.title || p.name}</h3>
+                        <button onclick="event.stopPropagation(); toggleArchiveStatus('${p.id}', ${!p.isArchived})" class="text-white/20 hover:text-white"><i class="fas fa-box"></i></button>
+                    </div>
                     <div class="progress-bar mb-3"><div class="progress-fill" style="width: ${perc}%"></div></div>
-                    <div class="text-[10px] font-bold text-white/30 uppercase">₪${spent.toLocaleString()} / ₪${(p.budget || p.limit).toLocaleString()}</div>
+                    <div class="flex justify-between text-[10px] font-bold text-white/30 uppercase">
+                        <span>₪${spent.toLocaleString()} / ₪${(p.budget || p.limit).toLocaleString()}</span>
+                        <span>${p.endDate || ''}</span>
+                    </div>
                 </div>`;
             }).join('');
         }
 
-        // פונקציות המודאלים - וידאתי שהשמות תואמים לכפתורים
         function openNewProjectModal() { document.getElementById('newProjectModal').classList.replace('hidden', 'flex'); }
         function closeNewProjectModal() { document.getElementById('newProjectModal').classList.replace('flex', 'hidden'); }
         function openProjectDetail(id) { currentProjectId = id; document.getElementById('projectDetailModal').classList.replace('hidden', 'flex'); renderProjectInfo(); }
         function closeProjectDetail() { document.getElementById('projectDetailModal').classList.replace('flex', 'hidden'); currentProjectId = null; }
+        function toggleArchiveView() { isArchiveView = !isArchiveView; renderUI(); document.getElementById('archiveBtn').classList.toggle('bg-white/20', isArchiveView); }
+        async function toggleArchiveStatus(id, s) { await db.collection('family_plans').doc(id).update({ isArchived: s }); }
         function goHome() { isGantt = false; document.getElementById('ganttView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); }
         function toggleGantt() { isGantt = !isGantt; document.getElementById('projectsView').classList.toggle('hidden', isGantt); document.getElementById('ganttView').classList.toggle('hidden', !isGantt); if(isGantt) renderGantt(); }
 
         async function saveProject() {
-            const title = document.getElementById('pTitle').value, budget = Number(document.getElementById('pBudget').value), category = document.getElementById('pCat').value;
+            const title = document.getElementById('pTitle').value, budget = Number(document.getElementById('pBudget').value), 
+                  category = document.getElementById('pCat').value, startDate = document.getElementById('pStart').value, endDate = document.getElementById('pEnd').value;
             if(!title) return;
-            await db.collection('family_plans').add({ title, budget, category, tasks: [], isArchived: false, createdAt: new Date() });
+            await db.collection('family_plans').add({ title, budget, category, startDate, endDate, tasks: [], isArchived: false, createdAt: new Date(), collaborators: ['atz@gmail.com'] });
             closeNewProjectModal();
         }
 
