@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V87 - Full Glass & Features</title>
+    <title>LifeOS V89 - Global Partner Fix</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -13,11 +13,11 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <style>
         body { font-family: 'Heebo', sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); color: white; text-align: right; min-height: 100vh; }
-        .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px; }
+        .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px; }
         .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 32px; transition: all 0.3s ease; }
         .nav-btn { width: 44px; height: 44px; border-radius: 15px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.1); }
         .progress-bar { background: rgba(255,255,255,0.1); height: 6px; border-radius: 10px; overflow: hidden; }
-        .progress-fill { height: 100%; transition: width 0.8s ease; background: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        .progress-fill { height: 100%; transition: width 0.8s ease; background: #fff; }
         input, select { background: rgba(255, 255, 255, 0.05) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 16px !important; color: white !important; padding: 12px !important; }
         ::-webkit-scrollbar { display: none; }
     </style>
@@ -26,7 +26,7 @@
 
     <div id="authScreen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900">
         <div class="glass-panel p-10 w-full max-w-sm text-center">
-            <h1 class="text-4xl font-black mb-10 italic tracking-tighter">Life<span class="opacity-40">OS</span></h1>
+            <h1 class="text-4xl font-black mb-10 italic">LifeOS</h1>
             <input type="email" id="emailInput" placeholder="אימייל" class="w-full mb-3 text-left ltr" dir="ltr">
             <input type="password" id="passInput" placeholder="סיסמה" class="w-full mb-8 text-left ltr" dir="ltr">
             <div class="flex gap-2">
@@ -40,12 +40,14 @@
         <header class="p-6 flex justify-between items-center border-b border-white/5">
             <div class="flex gap-3 items-center">
                 <button onclick="goHome()" class="nav-btn"><i class="fas fa-home"></i></button>
+                <button onclick="openPartnerModal()" class="nav-btn"><i class="fas fa-fingerprint"></i></button>
                 <div class="mr-3">
-                    <h1 class="text-xl font-black italic">LifeOS</h1>
-                    <button onclick="toggleArchive()" id="archiveToggleBtn" class="text-[8px] text-white/30 font-bold uppercase tracking-widest block text-right">צפה בארכיון</button>
+                    <h1 id="headerTitle" class="text-xl font-black italic leading-none">LifeOS</h1>
+                    <span id="partnerStatus" class="text-[7px] text-white/30 uppercase tracking-widest mt-1 block"></span>
                 </div>
             </div>
             <div class="flex gap-2">
+                <button onclick="toggleArchiveView()" id="archiveBtn" class="px-4 py-2 glass-card text-[9px] font-bold">📦 ארכיון</button>
                 <button onclick="toggleView()" id="viewBtn" class="px-5 py-2 glass-card text-[9px] font-black uppercase tracking-widest border border-white/10">דשבורד</button>
                 <button onclick="auth.signOut()" class="text-white/20 p-2"><i class="fas fa-sign-out-alt"></i></button>
             </div>
@@ -62,23 +64,32 @@
             </div>
         </main>
 
-        <button onclick="openProjectModal()" class="absolute bottom-8 left-8 w-16 h-16 bg-white text-slate-900 rounded-2xl flex items-center justify-center shadow-2xl z-40 active:scale-90 transition">
+        <button id="addBtn" onclick="openProjectModal()" class="absolute bottom-8 left-8 w-16 h-16 bg-white text-slate-900 rounded-2xl flex items-center justify-center shadow-2xl z-40 active:scale-90 transition">
             <i class="fas fa-plus text-xl"></i>
         </button>
+    </div>
+
+    <div id="partnerModal" class="fixed inset-0 z-[120] hidden items-center justify-center bg-black/80 backdrop-blur-xl p-6">
+        <div class="glass-panel p-10 w-full max-w-sm text-center">
+            <h3 class="text-xl font-black mb-4">הוספת שותף ללוח</h3>
+            <p class="text-[10px] text-white/40 mb-8 italic">השותף יקבל גישה לכל הפרויקטים שלך</p>
+            <input type="email" id="partnerEmail" placeholder="מייל השותף" class="w-full p-4 mb-8 text-left ltr" dir="ltr">
+            <div class="flex gap-3">
+                <button onclick="saveGlobalPartner()" class="flex-1 py-4 bg-white text-slate-900 font-black rounded-2xl">שתף הכל</button>
+                <button onclick="closePartnerModal()" class="px-6 py-4 border border-white/10 rounded-2xl text-[10px]">ביטול</button>
+            </div>
+        </div>
     </div>
 
     <div id="projectModal" class="fixed inset-0 z-[110] hidden items-center justify-center bg-black/60 backdrop-blur-md p-6">
         <div class="glass-panel p-8 w-full max-w-md relative">
             <button onclick="closeProjectModal()" class="absolute top-6 left-6 text-white/40"><i class="fas fa-times"></i></button>
-            <h3 id="modalTitle" class="text-xl font-black mb-8 text-center">פרויקט חדש</h3>
+            <h3 id="modalTitle" class="text-xl font-black mb-8 text-center italic">פרויקט חדש</h3>
             <select id="pCat" class="w-full mb-4 text-sm"><option>🏠 שיפוץ</option><option>✈️ טיול</option><option>💼 עבודה</option></select>
             <input type="text" id="pTitle" placeholder="שם הפרויקט" class="w-full mb-4 text-sm">
-            <div class="grid grid-cols-2 gap-3 mb-6">
-                <input type="date" id="pStart" class="w-full text-xs" dir="ltr">
-                <input type="date" id="pEnd" class="w-full text-xs" dir="ltr">
-            </div>
+            <div class="grid grid-cols-2 gap-3 mb-6"><input type="date" id="pStart" class="w-full text-xs" dir="ltr"><input type="date" id="pEnd" class="w-full text-xs" dir="ltr"></div>
             <input type="number" id="pBudget" placeholder="תקציב (₪)" class="w-full mb-8 text-xl font-black text-left" dir="ltr">
-            <button onclick="saveProject()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">שמור שינויים</button>
+            <button onclick="saveProject()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">שמור</button>
         </div>
     </div>
 
@@ -90,10 +101,8 @@
         </header>
         <div id="detailProgressInfo" class="mb-8"></div>
         <div id="tasksList" class="space-y-4 pb-40"></div>
-        <div class="fixed bottom-6 left-6 right-6 glass-panel p-4 flex gap-2">
-            <input type="text" id="taskName" placeholder="תיאור הוצאה" class="flex-1">
-            <input type="number" id="taskPrice" placeholder="₪" class="w-24 text-center font-bold" dir="ltr">
-            <button onclick="addTask()" class="w-12 h-12 bg-white text-slate-900 rounded-xl flex items-center justify-center"><i class="fas fa-plus"></i></button>
+        <div id="addTaskPanel" class="fixed bottom-6 left-6 right-6 glass-panel p-4 flex gap-2">
+            <input type="text" id="taskName" placeholder="הוצאה" class="flex-1 p-3"><input type="number" id="taskPrice" placeholder="₪" class="w-24 text-center font-bold" dir="ltr"><button onclick="addTask()" class="w-12 h-12 bg-white text-slate-900 rounded-xl flex items-center justify-center"><i class="fas fa-plus"></i></button>
         </div>
     </div>
 
@@ -105,13 +114,14 @@
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(), db = firebase.firestore();
-        let projects = [], currentProjectId = null, editProjectId = null, userEmail = "", isDashboard = false, isArchiveView = false, myChart = null;
+        let projects = [], currentProjectId = null, editProjectId = null, userEmail = "", isDashboard = false, isArchiveView = false, myChart = null, globalPartner = "";
 
         auth.onAuthStateChanged(user => {
             if (user) {
                 userEmail = user.email.toLowerCase();
                 document.getElementById('authScreen').classList.add('hidden');
                 document.getElementById('appScreen').classList.replace('hidden', 'flex');
+                loadGlobalPartner();
                 loadData();
             } else {
                 document.getElementById('authScreen').classList.remove('hidden');
@@ -119,27 +129,53 @@
             }
         });
 
+        async function loadGlobalPartner() {
+            const doc = await db.collection('users').doc(userEmail).get();
+            if(doc.exists && doc.data().globalPartner) {
+                globalPartner = doc.data().globalPartner;
+                document.getElementById('partnerStatus').innerText = `מחובר ל: ${globalPartner}`;
+            }
+        }
+
+        async function saveGlobalPartner() {
+            const partner = document.getElementById('partnerEmail').value.trim().toLowerCase();
+            if(!partner) return;
+            await db.collection('users').doc(userEmail).set({ globalPartner: partner }, { merge: true });
+            
+            // עדכון כל הפרויקטים הקיימים עם השותף החדש
+            const snap = await db.collection('life_projects').where('owner', '==', userEmail).get();
+            const batch = db.batch();
+            snap.docs.forEach(doc => {
+                const collaborators = doc.data().collaborators || [];
+                if(!collaborators.includes(partner)) {
+                    collaborators.push(partner);
+                    batch.update(doc.ref, { collaborators });
+                }
+            });
+            await batch.commit();
+            alert("השותף נוסף לכל הפרויקטים!");
+            closePartnerModal();
+            loadGlobalPartner();
+        }
+
         async function handleAuth(type) {
-            const email = document.getElementById('emailInput').value.trim();
-            const pass = document.getElementById('passInput').value;
-            try {
-                if(type === 'login') await auth.signInWithEmailAndPassword(email, pass);
-                else await auth.createUserWithEmailAndPassword(email, pass);
-            } catch(e) { alert(e.message); }
+            const email = document.getElementById('emailInput').value.trim(), pass = document.getElementById('passInput').value;
+            try { if(type === 'login') await auth.signInWithEmailAndPassword(email, pass); else await auth.createUserWithEmailAndPassword(email, pass); } catch(e) { alert(e.message); }
         }
 
         function loadData() {
-            db.collection('life_projects').where('collaborators', 'array-contains', userEmail)
-              .onSnapshot(snap => {
-                  projects = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                  renderUI();
-                  if(isDashboard) renderDashboard();
-              });
+            db.collection('life_projects').where('collaborators', 'array-contains', userEmail).onSnapshot(snap => {
+                projects = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                renderUI();
+                if(isDashboard) renderDashboard();
+            });
         }
 
         function renderUI() {
             const view = document.getElementById('projectsView');
-            const filtered = projects.filter(p => isArchiveView ? p.isArchived : !p.isArchived);
+            const filtered = projects.filter(p => isArchiveView ? p.isArchived === true : !p.isArchived);
+            document.getElementById('headerTitle').innerText = isArchiveView ? "ארכיון LifeOS" : "LifeOS";
+            document.getElementById('addBtn').classList.toggle('hidden', isArchiveView);
             view.innerHTML = filtered.map(p => {
                 const spent = (p.tasks || []).reduce((s, t) => s + Number(t.price || 0), 0);
                 const percent = Math.min((spent / p.budget) * 100, 100);
@@ -149,7 +185,7 @@
                         <div class="flex gap-3 text-white/30">
                             <button onclick="openProjectModal('${p.id}')"><i class="fas fa-edit fa-xs"></i></button>
                             <button onclick="toggleArchiveStatus('${p.id}', ${!p.isArchived})"><i class="fas ${p.isArchived ? 'fa-box-open' : 'fa-box'} fa-xs"></i></button>
-                            <button onclick="deleteProject('${p.id}')"><i class="fas fa-trash fa-xs text-rose-900/50"></i></button>
+                            <button onclick="deleteProject('${p.id}')"><i class="fas fa-trash fa-xs"></i></button>
                         </div>
                     </div>
                     <div onclick="openProjectDetail('${p.id}')" class="cursor-pointer">
@@ -164,71 +200,44 @@
             }).join('');
         }
 
-        function openProjectModal(id = null) {
-            editProjectId = id;
-            if(id) {
-                const p = projects.find(x => x.id === id);
-                document.getElementById('pTitle').value = p.title;
-                document.getElementById('pBudget').value = p.budget;
-                document.getElementById('pStart').value = p.startDate || "";
-                document.getElementById('pEnd').value = p.endDate || "";
-                document.getElementById('modalTitle').innerText = "עריכת פרויקט";
-            } else {
-                document.getElementById('pTitle').value = ""; document.getElementById('pBudget').value = "";
-                document.getElementById('modalTitle').innerText = "פרויקט חדש";
-            }
-            document.getElementById('projectModal').classList.replace('hidden', 'flex');
-        }
-
         async function saveProject() {
-            const data = {
-                title: document.getElementById('pTitle').value, budget: Number(document.getElementById('pBudget').value),
-                category: document.getElementById('pCat').value, startDate: document.getElementById('pStart').value,
-                endDate: document.getElementById('pEnd').value
-            };
+            const data = { title: document.getElementById('pTitle').value, budget: Number(document.getElementById('pBudget').value), category: document.getElementById('pCat').value, startDate: document.getElementById('pStart').value, endDate: document.getElementById('pEnd').value };
             if(editProjectId) await db.collection('life_projects').doc(editProjectId).update(data);
-            else await db.collection('life_projects').add({...data, owner: userEmail, collaborators:[userEmail], tasks:[], isArchived:false});
+            else {
+                const collaborators = [userEmail];
+                if(globalPartner) collaborators.push(globalPartner);
+                await db.collection('life_projects').add({...data, owner: userEmail, collaborators, tasks:[], isArchived:false, createdAt: new Date()});
+            }
             closeProjectModal();
         }
 
+        function openPartnerModal() { document.getElementById('partnerModal').classList.replace('hidden', 'flex'); }
+        function closePartnerModal() { document.getElementById('partnerModal').classList.replace('flex', 'hidden'); }
         async function toggleArchiveStatus(id, status) { await db.collection('life_projects').doc(id).update({ isArchived: status }); }
         async function deleteProject(id) { if(confirm("למחוק לצמיתות?")) await db.collection('life_projects').doc(id).delete(); }
-        function toggleArchive() { isArchiveView = !isArchiveView; document.getElementById('archiveToggleBtn').innerText = isArchiveView ? "חזור לפעילים" : "צפה בארכיון"; renderUI(); }
-        function goHome() { isDashboard = false; isArchiveView = false; document.getElementById('dashboardView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
-
+        function toggleArchiveView() { isArchiveView = !isArchiveView; isDashboard = false; document.getElementById('dashboardView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
+        function goHome() { isArchiveView = false; isDashboard = false; renderUI(); }
+        function openProjectModal(id = null) { editProjectId = id; if(id) { const p = projects.find(x => x.id === id); document.getElementById('pTitle').value = p.title; document.getElementById('pBudget').value = p.budget; } document.getElementById('projectModal').classList.replace('hidden', 'flex'); }
+        function closeProjectModal() { document.getElementById('projectModal').classList.replace('flex', 'hidden'); }
         function openProjectDetail(id) { currentProjectId = id; document.getElementById('projectDetailModal').classList.replace('hidden', 'flex'); renderProjectInfo(); }
         function renderProjectInfo() {
-            const p = projects.find(x => x.id === currentProjectId);
-            if(!p) return;
+            const p = projects.find(x => x.id === currentProjectId); if(!p) return;
             const spent = (p.tasks || []).reduce((s, t) => s + Number(t.price || 0), 0);
             document.getElementById('detailTitle').innerText = p.title;
             document.getElementById('detailProgressInfo').innerHTML = `<div class="glass-card p-10 text-center"><div class="text-[9px] text-white/30 uppercase mb-2">יתרה</div><div class="text-4xl font-black italic">₪${(p.budget - spent).toLocaleString()}</div></div>`;
             document.getElementById('tasksList').innerHTML = (p.tasks || []).map((t, i) => `<div class="glass-card p-5 flex justify-between items-center border border-white/5"><span>${t.name}</span><span class="font-black opacity-80">₪${Number(t.price).toLocaleString()}</span></div>`).reverse().join('');
         }
-
         async function addTask() {
             const name = document.getElementById('taskName').value, price = Number(document.getElementById('taskPrice').value);
-            if(name && price) {
-                const p = projects.find(x => x.id === currentProjectId);
-                const tasks = [...(p.tasks || []), { name, price, date: new Date() }];
-                await db.collection('life_projects').doc(currentProjectId).update({ tasks });
-                document.getElementById('taskName').value = ''; document.getElementById('taskPrice').value = '';
-                renderProjectInfo();
-            }
+            if(name && price) { const docRef = db.collection('life_projects').doc(currentProjectId); const p = projects.find(x => x.id === currentProjectId); const tasks = [...(p.tasks || []), { name, price, date: new Date() }]; await docRef.update({ tasks }); document.getElementById('taskName').value = ''; document.getElementById('taskPrice').value = ''; }
         }
-
-        function closeProjectModal() { document.getElementById('projectModal').classList.replace('flex', 'hidden'); }
         function closeProjectDetail() { document.getElementById('projectDetailModal').classList.replace('flex', 'hidden'); }
         function toggleView() { isDashboard = !isDashboard; document.getElementById('projectsView').classList.toggle('hidden', isDashboard); document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard); if(isDashboard) renderDashboard(); }
-        
         function renderDashboard() {
             const active = projects.filter(p => !p.isArchived);
-            const totalP = active.reduce((s, p) => s + Number(p.budget), 0);
-            const totalS = active.reduce((s, p) => s + (p.tasks || []).reduce((ts, t) => ts + Number(t.price), 0), 0);
-            document.getElementById('totalPlanned').innerText = `₪${totalP.toLocaleString()}`;
-            document.getElementById('totalSpent').innerText = `₪${totalS.toLocaleString()}`;
-            const ctx = document.getElementById('mainChart').getContext('2d');
-            if(myChart) myChart.destroy();
+            const totalP = active.reduce((s, p) => s + Number(p.budget), 0), totalS = active.reduce((s, p) => s + (p.tasks || []).reduce((ts, t) => ts + Number(t.price), 0), 0);
+            document.getElementById('totalPlanned').innerText = `₪${totalP.toLocaleString()}`; document.getElementById('totalSpent').innerText = `₪${totalS.toLocaleString()}`;
+            const ctx = document.getElementById('mainChart').getContext('2d'); if(myChart) myChart.destroy();
             myChart = new Chart(ctx, { type: 'bar', data: { labels: active.map(p => p.title), datasets: [{ label: 'תקציב', data: active.map(p => p.budget), backgroundColor: 'rgba(255,255,255,0.1)' }, { label: 'בוצע', data: active.map(p => (p.tasks||[]).reduce((ts,t)=>ts+Number(t.price),0)), backgroundColor: 'white' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
         }
     </script>
