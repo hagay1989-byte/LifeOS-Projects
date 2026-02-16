@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V101 - Luxury Background Restore</title>
+    <title>LifeOS V102 - Stable Background Fix</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -11,101 +11,110 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <style>
-        /* תיקון הרקע - גרדיאנט יוקרתי ועמוק */
+        /* רקע ראשי יוקרתי */
         body { 
             font-family: 'Heebo', sans-serif; 
-            background: radial-gradient(circle at top right, #1e1b4b, #0f172a 70%); 
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a 80%); 
             background-attachment: fixed;
             color: white; 
             text-align: right; 
             min-height: 100vh; 
-            margin: 0;
-            overflow-x: hidden; 
         }
 
-        /* אפקט זכוכית לפאנלים */
-        .glass-panel { 
-            background: rgba(255, 255, 255, 0.03); 
-            backdrop-filter: blur(25px); 
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.08); 
-            border-radius: 40px; 
-        }
-
-        /* כרטיסיות פרויקטים מעוצבות */
-        .glass-card { 
-            background: rgba(255, 255, 255, 0.05); 
-            backdrop-filter: blur(12px); 
-            border: 1px solid rgba(255, 255, 255, 0.1); 
-            border-radius: 32px; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .glass-card:active { transform: scale(0.98); background: rgba(255,255,255,0.08); }
-
-        .progress-bar { background: rgba(255,255,255,0.08); height: 8px; border-radius: 20px; overflow: hidden; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #fff, #e2e8f0); box-shadow: 0 0 15px rgba(255,255,255,0.2); transition: width 1s ease-in-out; }
+        .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px; }
+        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 32px; transition: all 0.3s ease; cursor: pointer; }
         
-        input, select { background: rgba(255, 255, 255, 0.05) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 18px !important; color: white !important; }
+        /* תיקון רקע המודאלים (הטבלה שנפתחת) */
+        .modal-overlay { 
+            background: rgba(15, 23, 42, 0.9); 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px);
+        }
+
+        .progress-bar { background: rgba(255,255,255,0.1); height: 6px; border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; transition: width 0.8s ease; background: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.3); }
+        input, select { background: rgba(255, 255, 255, 0.05) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 16px !important; color: white !important; padding: 12px !important; }
+        
+        /* Gantt Styles */
+        .gantt-grid { border-radius: 20px; background: rgba(255,255,255,0.02); padding: 20px; overflow-x: auto; }
+        .quarter-header { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 10px; min-width: 800px; text-align: center; font-size: 10px; font-weight: 900; opacity: 0.6; }
+        .month-sub-header { display: grid; grid-template-columns: repeat(12, 1fr); text-align: center; font-size: 9px; opacity: 0.3; min-width: 800px; padding-bottom: 20px; }
+        .gantt-row { display: grid; grid-template-columns: 120px 1fr; align-items: center; margin: 20px 0; min-width: 800px; }
+        .gantt-track { position: relative; height: 14px; background: rgba(255,255,255,0.03); border-radius: 20px; }
+        .gantt-bar { position: absolute; height: 100%; background: #fff; border-radius: 20px; }
         
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="p-4 flex justify-center items-start pt-8">
+<body class="p-4 flex justify-center items-center">
 
-    <div id="appScreen" class="glass-panel w-full max-w-5xl min-h-[90vh] flex flex-col overflow-hidden shadow-2xl relative">
-        <header class="p-8 flex justify-between items-center border-b border-white/5">
-            <div class="flex gap-4 items-center">
-                <button onclick="goHome()" class="p-3 bg-white/5 rounded-2xl border border-white/10"><i class="fas fa-home"></i></button>
-                <button onclick="toggleGantt()" class="p-3 bg-white/5 rounded-2xl border border-white/10"><i class="fas fa-calendar-alt"></i></button>
-                <h1 class="text-2xl font-black italic mr-2 tracking-tighter">LifeOS</h1>
+    <div id="appScreen" class="glass-panel w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden shadow-2xl relative">
+        <header class="p-6 flex justify-between items-center border-b border-white/5">
+            <div class="flex gap-3 items-center">
+                <button onclick="goHome()" class="p-3 bg-white/5 rounded-xl border border-white/10"><i class="fas fa-home text-sm"></i></button>
+                <button onclick="toggleGantt()" class="p-3 bg-white/5 rounded-xl border border-white/10"><i class="fas fa-calendar-alt text-sm"></i></button>
+                <button onclick="openPartnerModal()" class="p-3 bg-white/5 rounded-xl border border-white/10 text-purple-400"><i class="fas fa-fingerprint text-sm"></i></button>
+                <h1 class="text-xl font-black italic mr-2">LifeOS</h1>
             </div>
-            <button onclick="openPartnerModal()" class="p-3 bg-white/5 rounded-2xl border border-white/10 text-purple-400"><i class="fas fa-fingerprint"></i></button>
+            <button onclick="auth.signOut()" class="text-white/20 p-2"><i class="fas fa-sign-out-alt"></i></button>
         </header>
 
-        <main class="flex-1 p-8 overflow-y-auto">
-            <div id="projectsView" class="grid grid-cols-1 md:grid-cols-2 gap-8 pb-32"></div>
-            <div id="ganttView" class="hidden pb-32">
-                <h2 class="text-3xl font-black mb-8 italic">ציר זמן רבעוני</h2>
-                <div id="ganttRows" class="space-y-6"></div>
+        <main class="flex-1 overflow-y-auto p-6">
+            <div id="projectsView" class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-24"></div>
+            <div id="ganttView" class="hidden space-y-6 pb-24">
+                <h2 class="text-2xl font-black italic">ציר זמן רבעוני</h2>
+                <div class="gantt-grid">
+                    <div class="quarter-header"><span>רבעון 1</span><span>רבעון 2</span><span>רבעון 3</span><span>רבעון 4</span></div>
+                    <div class="month-sub-header"><span>ינ</span><span>פב</span><span>מר</span><span>אפ</span><span>מאי</span><span>יו</span><span>יול</span><span>אוג</span><span>ספ</span><span>אוק</span><span>נו</span><span>דצ</span></div>
+                    <div id="ganttRows" class="mt-4"></div>
+                </div>
             </div>
         </main>
 
-        <button onclick="openNewProjectModal()" class="absolute bottom-10 left-10 w-20 h-20 bg-white text-slate-900 rounded-3xl flex items-center justify-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-50">
-            <i class="fas fa-plus text-2xl"></i>
+        <button onclick="openNewProjectModal()" class="absolute bottom-8 left-8 w-16 h-16 bg-white text-slate-900 rounded-2xl flex items-center justify-center shadow-2xl z-40 active:scale-90 transition">
+            <i class="fas fa-plus text-xl"></i>
         </button>
     </div>
 
-    <div id="newProjectModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-950/80 backdrop-blur-xl p-6">
-        <div class="glass-panel p-10 w-full max-w-md">
-            <h3 class="text-2xl font-black mb-8 text-center italic">פרויקט חדש</h3>
-            <select id="pCat" class="w-full mb-4 p-4 text-lg">
-                <option>🏠 שיפוץ</option><option>👩‍🍳 עסק</option><option>✈️ טיול</option><option>💼 עבודה</option>
-            </select>
-            <input type="text" id="pTitle" placeholder="שם הפרויקט" class="w-full mb-4 p-4 text-lg">
-            <div class="grid grid-cols-2 gap-4 mb-8">
-                <input type="date" id="pStart" class="w-full p-3 text-sm">
-                <input type="date" id="pEnd" class="w-full p-3 text-sm">
+    <div id="projectDetailModal" class="fixed inset-0 z-[300] hidden flex-col modal-overlay p-6 overflow-y-auto">
+        <header class="flex justify-between items-center mb-8">
+            <button onclick="closeProjectDetail()" class="p-3 bg-white/5 rounded-xl"><i class="fas fa-arrow-right"></i></button>
+            <h2 id="detailTitle" class="text-2xl font-black italic"></h2>
+        </header>
+        <div id="detailProgressInfo" class="mb-8"></div>
+        <div id="tasksList" class="space-y-4 pb-48"></div>
+        <div class="fixed bottom-6 left-6 right-6 glass-panel p-4 flex gap-2">
+            <input type="text" id="taskName" placeholder="מה קנינו?" class="flex-1 p-3">
+            <input type="number" id="taskPrice" placeholder="₪" class="w-24 text-center font-bold" dir="ltr">
+            <button onclick="addTask()" class="w-12 h-12 bg-white text-slate-900 rounded-xl flex items-center justify-center"><i class="fas fa-plus"></i></button>
+        </div>
+    </div>
+
+    <div id="partnerModal" class="fixed inset-0 z-[400] hidden items-center justify-center modal-overlay p-6">
+        <div class="glass-panel p-10 w-full max-w-sm text-center">
+            <h3 class="text-xl font-black mb-6">הוספת שותף</h3>
+            <input type="email" id="partnerEmail" placeholder="מייל השותף" class="w-full mb-8 text-left ltr" dir="ltr">
+            <div class="flex gap-3">
+                <button onclick="savePartner()" class="flex-1 py-4 bg-white text-slate-900 font-black rounded-2xl">שתף</button>
+                <button onclick="closePartnerModal()" class="px-6 py-4 border border-white/10 rounded-2xl text-[10px]">ביטול</button>
             </div>
-            <button onclick="saveProject()" class="w-full py-5 bg-white text-slate-900 font-black rounded-2xl text-xl shadow-xl">צור פרויקט</button>
-            <button onclick="closeNewProjectModal()" class="w-full mt-4 text-white/30 font-bold uppercase text-[10px] tracking-widest">ביטול</button>
         </div>
     </div>
 
     <script>
-        // שימוש בהגדרות ה-Firebase שלך
         const firebaseConfig = { 
             apiKey: "AIzaSyB7U5xw_FMThsmM2hNMRnkdMYnD2cutH2s", authDomain: "project-manager-4702c.firebaseapp.com", 
             projectId: "project-manager-4702c", storageBucket: "project-manager-4702c.firebasestorage.app", 
             messagingSenderId: "941533299304", appId: "1:941533299304:web:92f8940e93a96b1f8b71dd" 
         };
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        let projects = [];
+        const db = firebase.firestore(), auth = firebase.auth();
+        let projects = [], currentProjectId = null, userEmail = "atz@gmail.com", isGantt = false;
 
         function loadData() {
             db.collection('family_plans').onSnapshot(snap => {
                 projects = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                renderUI();
+                renderUI(); if(isGantt) renderGantt(); if(currentProjectId) renderProjectInfo();
             });
         }
 
@@ -114,24 +123,45 @@
             container.innerHTML = projects.filter(p => !p.isArchived).map(p => {
                 const spent = (p.tasks || []).reduce((s, t) => s + Number(t.price || 0), 0);
                 const perc = Math.min((spent / (p.budget || p.limit || 1)) * 100, 100);
-                return `
-                    <div class="glass-card p-10">
-                        <div class="flex justify-between items-start mb-8">
-                            <span class="text-[10px] px-4 py-2 bg-white/10 rounded-full font-black uppercase tracking-widest">${p.category || '🏠'}</span>
-                        </div>
-                        <h3 class="text-3xl font-black mb-8 italic">${p.title || p.name}</h3>
-                        <div class="progress-bar mb-4"><div class="progress-fill" style="width: ${perc}%"></div></div>
-                        <div class="flex justify-between text-[11px] font-bold text-white/40 uppercase">
-                            <span>₪${spent.toLocaleString()} / ₪${(p.budget || p.limit || 0).toLocaleString()}</span>
-                        </div>
-                    </div>`;
+                return `<div class="glass-card p-8" onclick="openProjectDetail('${p.id}')">
+                    <h3 class="text-2xl font-black mb-6 italic">${p.title || p.name}</h3>
+                    <div class="progress-bar mb-3"><div class="progress-fill" style="width: ${perc}%"></div></div>
+                    <div class="flex justify-between text-[10px] font-bold text-white/30 uppercase">
+                        <span>₪${spent.toLocaleString()} / ₪${(p.budget || p.limit).toLocaleString()}</span>
+                    </div>
+                </div>`;
             }).join('');
         }
 
-        function openNewProjectModal() { document.getElementById('newProjectModal').classList.replace('hidden', 'flex'); }
-        function closeNewProjectModal() { document.getElementById('newProjectModal').classList.replace('flex', 'hidden'); }
-        function toggleGantt() { document.getElementById('projectsView').classList.toggle('hidden'); document.getElementById('ganttView').classList.toggle('hidden'); }
-        function goHome() { document.getElementById('ganttView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); }
+        function renderGantt() {
+            const container = document.getElementById('ganttRows');
+            container.innerHTML = projects.filter(p => !p.isArchived).map(p => {
+                const start = new Date(p.startDate || Date.now()), end = new Date(p.endDate || (Date.now() + 2592000000));
+                const left = (start.getMonth() / 12) * 100, width = ((end.getMonth() - start.getMonth() + 1) / 12) * 100;
+                return `<div class="gantt-row"><div class="gantt-label text-xs">${p.title || p.name}</div><div class="gantt-track"><div class="gantt-bar" style="right: ${left}%; width: ${width}%"></div></div></div>`;
+            }).join('');
+        }
+
+        function openProjectDetail(id) { currentProjectId = id; document.getElementById('projectDetailModal').classList.replace('hidden', 'flex'); renderProjectInfo(); }
+        function closeProjectDetail() { document.getElementById('projectDetailModal').classList.replace('flex', 'hidden'); currentProjectId = null; }
+        function openPartnerModal() { document.getElementById('partnerModal').classList.replace('hidden', 'flex'); }
+        function closePartnerModal() { document.getElementById('partnerModal').classList.replace('flex', 'hidden'); }
+        function toggleGantt() { isGantt = !isGantt; document.getElementById('projectsView').classList.toggle('hidden', isGantt); document.getElementById('ganttView').classList.toggle('hidden', !isGantt); if(isGantt) renderGantt(); }
+        function goHome() { isGantt = false; document.getElementById('ganttView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
+        
+        function renderProjectInfo() {
+            const p = projects.find(x => x.id === currentProjectId); if(!p) return;
+            const spent = (p.tasks || []).reduce((s, t) => s + Number(t.price || 0), 0);
+            document.getElementById('detailTitle').innerText = p.title || p.name;
+            document.getElementById('detailProgressInfo').innerHTML = `<div class="glass-card p-10 text-center"><div class="text-4xl font-black italic">₪${((p.budget || p.limit) - spent).toLocaleString()}</div><div class="text-[10px] opacity-40 uppercase mt-2">יתרה פנויה</div></div>`;
+            document.getElementById('tasksList').innerHTML = (p.tasks || []).map(t => `<div class="glass-card p-5 flex justify-between items-center border border-white/5"><span>${t.name}</span><span class="font-black">₪${Number(t.price).toLocaleString()}</span></div>`).reverse().join('');
+        }
+
+        async function addTask() {
+            const name = document.getElementById('taskName').value, price = Number(document.getElementById('taskPrice').value);
+            if(name && price) { const p = projects.find(x => x.id === currentProjectId); const tasks = [...(p.tasks || []), { name, price, date: new Date() }]; await db.collection('family_plans').doc(currentProjectId).update({ tasks }); document.getElementById('taskName').value = ''; document.getElementById('taskPrice').value = ''; }
+        }
+
         loadData();
     </script>
 </body>
