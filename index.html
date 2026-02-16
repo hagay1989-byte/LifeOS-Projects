@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V113 - Full Control Restore</title>
+    <title>LifeOS V112 - Complete & Stable</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -49,6 +49,7 @@
 
         <main class="flex-1 overflow-y-auto p-6">
             <div id="projectsView" class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-24"></div>
+            
             <div id="dashboardView" class="hidden space-y-6 pb-24">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="glass-card p-6 text-center"><span>תכנון</span><div class="text-xl font-black" id="totalPlanned">₪0</div></div>
@@ -56,6 +57,7 @@
                 </div>
                 <div class="glass-card p-6 h-64"><canvas id="mainChart"></canvas></div>
             </div>
+
             <div id="ganttView" class="hidden space-y-6 pb-24">
                 <h2 class="text-2xl font-black italic text-center mb-6">ציר זמן</h2>
                 <div id="ganttRows" class="space-y-4 bg-white/5 p-6 rounded-3xl"></div>
@@ -67,23 +69,10 @@
         </button>
     </div>
 
-    <div id="projectDetailModal" class="hidden modal-overlay">
-        <div class="glass-panel p-8 w-full max-w-md h-[80vh] flex flex-col relative text-right">
-            <button onclick="closeProjectDetail()" class="absolute top-4 left-4 text-white/40"><i class="fas fa-times"></i></button>
-            <h2 id="detailTitle" class="text-2xl font-black italic mb-6"></h2>
-            <div id="tasksList" class="flex-1 overflow-y-auto space-y-3 mb-6"></div>
-            <div class="space-y-3">
-                <input type="text" id="taskName" placeholder="מה ההוצאה?">
-                <input type="number" id="taskPrice" placeholder="מחיר (₪)">
-                <button onclick="addTask()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">הוסף משימה</button>
-            </div>
-        </div>
-    </div>
-
     <div id="newProjectModal" class="hidden modal-overlay">
         <div class="glass-panel p-10 w-full max-w-md relative">
             <button onclick="closeNewProjectModal()" class="absolute top-4 left-4 text-white/40"><i class="fas fa-times"></i></button>
-            <h3 id="modalHeaderTitle" class="text-xl font-black mb-8 text-center italic">פרויקט חדש</h3>
+            <h3 class="text-xl font-black mb-8 text-center italic">פרויקט חדש</h3>
             <select id="pCat" class="mb-4">
                 <option>🏠 שיפוץ</option><option>✈️ טיול</option><option>👩‍🍳 עסק</option><option>🧸 משפחה</option>
             </select>
@@ -92,7 +81,7 @@
                 <input type="date" id="pStart"><input type="date" id="pEnd">
             </div>
             <input type="number" id="pBudget" placeholder="תקציב (₪)" class="mb-8 text-xl font-black">
-            <button id="saveBtn" onclick="saveProject()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">שמור</button>
+            <button onclick="saveProject()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">שמור</button>
         </div>
     </div>
 
@@ -104,7 +93,7 @@
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(), db = firebase.firestore();
-        let projects = [], currentProjectId = null, editProjectId = null, userEmail = "", isGantt = false, isDashboard = false, isArchiveView = false, myChart = null;
+        let projects = [], userEmail = "", isGantt = false, isDashboard = false, isArchiveView = false, myChart = null;
 
         async function handleAuth(type) {
             const email = document.getElementById('emailInput').value.trim(), pass = document.getElementById('passInput').value;
@@ -126,7 +115,7 @@
         function loadData() {
             db.collection('family_plans').onSnapshot(snap => {
                 projects = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                renderUI(); if(isDashboard) renderDashboard(); if(isGantt) renderGantt(); if(currentProjectId) renderProjectInfo();
+                renderUI(); if(isDashboard) renderDashboard(); if(isGantt) renderGantt();
             });
         }
 
@@ -136,14 +125,10 @@
             container.innerHTML = filtered.map(p => {
                 const spent = (p.tasks || []).reduce((s, t) => s + Number(t.price || 0), 0);
                 const perc = Math.min((spent / (p.budget || p.limit || 1)) * 100, 100);
-                return `<div class="glass-card p-8" onclick="openProjectDetail('${p.id}')">
+                return `<div class="glass-card p-8">
                     <div class="flex justify-between items-start mb-4">
                         <h3 class="text-2xl font-black italic">${p.title || p.name}</h3>
-                        <div class="flex gap-3 text-white/20" onclick="event.stopPropagation()">
-                            <button onclick="openNewProjectModal('${p.id}')"><i class="fas fa-edit"></i></button>
-                            <button onclick="toggleArchiveStatus('${p.id}', ${!p.isArchived})"><i class="fas fa-box"></i></button>
-                            <button onclick="deleteProject('${p.id}')"><i class="fas fa-trash text-rose-500/50"></i></button>
-                        </div>
+                        <button onclick="event.stopPropagation(); toggleArchiveStatus('${p.id}', ${!p.isArchived})" class="text-white/20"><i class="fas fa-box"></i></button>
                     </div>
                     <div class="progress-bar mb-3"><div class="progress-fill" style="width: ${perc}%"></div></div>
                     <div class="text-[10px] font-bold text-white/30 uppercase">₪${spent.toLocaleString()} / ₪${(p.budget || p.limit).toLocaleString()}</div>
@@ -151,53 +136,39 @@
             }).join('');
         }
 
-        function openProjectDetail(id) { currentProjectId = id; document.getElementById('projectDetailModal').classList.replace('hidden', 'flex'); renderProjectInfo(); }
-        function closeProjectDetail() { document.getElementById('projectDetailModal').classList.replace('flex', 'hidden'); currentProjectId = null; }
-        
-        function renderProjectInfo() {
-            const p = projects.find(x => x.id === currentProjectId); if(!p) return;
-            document.getElementById('detailTitle').innerText = p.title || p.name;
-            document.getElementById('tasksList').innerHTML = (p.tasks || []).map(t => `<div class="bg-white/5 p-4 rounded-2xl flex justify-between"><span>${t.name}</span><span class="font-bold">₪${t.price}</span></div>`).reverse().join('');
-        }
-
-        async function addTask() {
-            const name = document.getElementById('taskName').value, price = Number(document.getElementById('taskPrice').value);
-            if(name && price) {
-                const p = projects.find(x => x.id === currentProjectId);
-                const tasks = [...(p.tasks || []), { name, price, date: new Date() }];
-                await db.collection('family_plans').doc(currentProjectId).update({ tasks });
-                document.getElementById('taskName').value = ''; document.getElementById('taskPrice').value = '';
-            }
-        }
-
-        async function deleteProject(id) { if(confirm("למחוק לצמיתות?")) await db.collection('family_plans').doc(id).delete(); }
-        function openNewProjectModal(id = null) { 
-            editProjectId = id; 
-            if(id) {
-                const p = projects.find(x => x.id === id);
-                document.getElementById('pTitle').value = p.title || p.name;
-                document.getElementById('pBudget').value = p.budget || p.limit;
-                document.getElementById('modalHeaderTitle').innerText = "עריכת פרויקט";
-            } else {
-                document.getElementById('pTitle').value = ""; document.getElementById('pBudget').value = "";
-                document.getElementById('modalHeaderTitle').innerText = "פרויקט חדש";
-            }
-            document.getElementById('newProjectModal').classList.replace('hidden', 'flex'); 
-        }
-        function closeNewProjectModal() { document.getElementById('newProjectModal').classList.replace('flex', 'hidden'); }
+        function toggleGantt() { isGantt = !isGantt; isDashboard = false; document.getElementById('projectsView').classList.toggle('hidden', isGantt); document.getElementById('ganttView').classList.toggle('hidden', !isGantt); document.getElementById('dashboardView').classList.add('hidden'); if(isGantt) renderGantt(); }
+        function toggleView() { isDashboard = !isDashboard; isGantt = false; document.getElementById('projectsView').classList.toggle('hidden', isDashboard); document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard); document.getElementById('ganttView').classList.add('hidden'); if(isDashboard) renderDashboard(); }
+        function toggleArchiveView() { isArchiveView = !isArchiveView; renderUI(); document.getElementById('archiveBtn').classList.toggle('bg-white/20', isArchiveView); }
+        async function toggleArchiveStatus(id, s) { await db.collection('family_plans').doc(id).update({ isArchived: s }); }
+        function openNewProjectModal() { document.getElementById('newProjectModal').classList.remove('hidden'); }
+        function closeNewProjectModal() { document.getElementById('newProjectModal').classList.add('hidden'); }
+        function goHome() { isGantt = false; isDashboard = false; isArchiveView = false; document.getElementById('dashboardView').classList.add('hidden'); document.getElementById('ganttView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
 
         async function saveProject() {
-            const title = document.getElementById('pTitle').value, budget = Number(document.getElementById('pBudget').value);
-            if(editProjectId) await db.collection('family_plans').doc(editProjectId).update({ title, budget });
-            else await db.collection('family_plans').add({ title, budget, tasks: [], isArchived: false, createdAt: new Date() });
+            const title = document.getElementById('pTitle').value, budget = Number(document.getElementById('pBudget').value), cat = document.getElementById('pCat').value, start = document.getElementById('pStart').value, end = document.getElementById('pEnd').value;
+            if(!title) return;
+            await db.collection('family_plans').add({ title, budget, category: cat, startDate: start, endDate: end, tasks: [], isArchived: false, createdAt: new Date() });
             closeNewProjectModal();
         }
 
-        function goHome() { isGantt = false; isDashboard = false; document.getElementById('dashboardView').classList.add('hidden'); document.getElementById('ganttView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
-        function toggleGantt() { isGantt = !isGantt; isDashboard = false; document.getElementById('projectsView').classList.add('hidden'); document.getElementById('ganttView').classList.remove('hidden'); if(isGantt) renderGantt(); }
-        function toggleView() { isDashboard = !isDashboard; isGantt = false; document.getElementById('projectsView').classList.add('hidden'); document.getElementById('dashboardView').classList.remove('hidden'); if(isDashboard) renderDashboard(); }
-        async function toggleArchiveStatus(id, s) { await db.collection('family_plans').doc(id).update({ isArchived: s }); }
-        function toggleArchiveView() { isArchiveView = !isArchiveView; renderUI(); }
+        function renderDashboard() {
+            const active = projects.filter(p => !p.isArchived);
+            const totalP = active.reduce((s, p) => s + Number(p.budget || p.limit), 0);
+            const totalS = active.reduce((s, p) => s + (p.tasks || []).reduce((ts, t) => ts + Number(t.price), 0), 0);
+            document.getElementById('totalPlanned').innerText = `₪${totalP.toLocaleString()}`;
+            document.getElementById('totalSpent').innerText = `₪${totalS.toLocaleString()}`;
+            const ctx = document.getElementById('mainChart').getContext('2d'); if(myChart) myChart.destroy();
+            myChart = new Chart(ctx, { type: 'bar', data: { labels: active.map(p => p.title || p.name), datasets: [{ label: 'תקציב', data: active.map(p => p.budget || p.limit), backgroundColor: 'rgba(255,255,255,0.1)' }, { label: 'בוצע', data: active.map(p => (p.tasks||[]).reduce((ts,t)=>ts+Number(t.price),0)), backgroundColor: 'white' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+        }
+
+        function renderGantt() {
+            const container = document.getElementById('ganttRows');
+            container.innerHTML = projects.filter(p => !p.isArchived).map(p => {
+                const start = new Date(p.startDate || Date.now()), end = new Date(p.endDate || (Date.now() + 2592000000));
+                const left = (start.getMonth() / 12) * 100, width = ((end.getMonth() - start.getMonth() + 1) / 12) * 100;
+                return `<div class="flex items-center gap-4"><div class="w-20 text-[10px] font-bold opacity-50 truncate">${p.title || p.name}</div><div class="flex-1 h-3 bg-white/5 rounded-full relative overflow-hidden"><div class="absolute h-full bg-white rounded-full" style="right:${left}%; width:${width}%"></div></div></div>`;
+            }).join('');
+        }
     </script>
 </body>
 </html>
