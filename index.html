@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V83 - Full Edit Mode</title>
+    <title>LifeOS V84 - Archive & Delete</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -14,8 +14,7 @@
     <style>
         body { font-family: 'Heebo', sans-serif; background: radial-gradient(circle at top right, #1e1b4b, #0f172a); color: white; text-align: right; min-height: 100vh; }
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 32px; }
-        .premium-card { background: linear-gradient(160deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.8) 100%); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 40px; position: relative; }
-        .progress-container { background: rgba(255,255,255,0.05); height: 6px; border-radius: 10px; overflow: hidden; }
+        .premium-card { background: linear-gradient(160deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.8) 100%); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 40px; }
         .progress-fill { height: 100%; transition: width 0.8s ease; }
         input, select { background: rgba(15, 23, 42, 0.6) !important; color: white !important; border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 16px !important; }
         .ltr-input { text-align: left !important; dir: ltr !important; }
@@ -36,7 +35,10 @@
         <header class="p-5 flex justify-between items-center z-20">
             <div class="flex gap-4 items-center">
                 <div class="w-12 h-12 glass flex items-center justify-center text-purple-400"><i class="fas fa-fingerprint text-xl"></i></div>
-                <h1 class="text-2xl font-black italic">LifeOS</h1>
+                <div>
+                    <h1 class="text-2xl font-black italic">LifeOS</h1>
+                    <button onclick="toggleArchive()" id="archiveToggleBtn" class="text-[8px] text-slate-500 font-black uppercase tracking-widest hover:text-purple-400">צפה בארכיון</button>
+                </div>
             </div>
             <div class="flex gap-2">
                 <button onclick="toggleView()" id="viewBtn" class="px-6 py-2 bg-purple-600 text-white rounded-full text-[10px] font-black uppercase">דשבורד</button>
@@ -83,7 +85,7 @@
                 <input type="date" id="pEnd" class="w-full p-3 outline-none text-xs ltr-input">
             </div>
             <input type="number" id="pBudget" placeholder="תקציב (₪)" class="w-full p-5 mb-10 outline-none font-black text-xl ltr-input">
-            <button id="saveProjBtn" onclick="saveProject()" class="w-full py-5 bg-purple-600 text-white font-black rounded-3xl shadow-xl">שמור פרויקט</button>
+            <button onclick="saveProject()" class="w-full py-5 bg-purple-600 text-white font-black rounded-3xl shadow-xl">שמור פרויקט</button>
         </div>
     </div>
 
@@ -98,7 +100,7 @@
         <div class="fixed bottom-6 left-6 right-6 glass p-4 flex gap-3 shadow-2xl z-50">
             <input type="text" id="taskName" placeholder="תיאור הוצאה" class="flex-1 p-3 text-sm outline-none">
             <input type="number" id="taskPrice" placeholder="₪" class="w-24 p-3 text-center font-black outline-none ltr-input">
-            <button onclick="addTask()" class="w-12 bg-purple-600 rounded-xl flex items-center justify-center"><i class="fas fa-plus"></i></button>
+            <button onclick="addTask()" class="w-12 bg-purple-600 rounded-xl flex items-center justify-center shadow-lg"><i class="fas fa-plus"></i></button>
         </div>
     </div>
 
@@ -110,7 +112,7 @@
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(), db = firebase.firestore();
-        let projects = [], currentProjectId = null, editProjectId = null, userEmail = "", isDashboard = false, myChart = null;
+        let projects = [], currentProjectId = null, editProjectId = null, userEmail = "", isDashboard = false, isArchiveView = false, myChart = null;
 
         auth.onAuthStateChanged(user => {
             if (user) {
@@ -128,9 +130,7 @@
         
         function openProjectModal(id = null) {
             editProjectId = id;
-            const modal = document.getElementById('projectModal');
             document.getElementById('modalTitle').innerText = id ? "עריכת פרויקט" : "פרויקט חדש";
-            
             if(id) {
                 const p = projects.find(x => x.id === id);
                 document.getElementById('pTitle').value = p.title;
@@ -138,13 +138,8 @@
                 document.getElementById('pCat').value = p.category;
                 document.getElementById('pStart').value = p.startDate || "";
                 document.getElementById('pEnd').value = p.endDate || "";
-            } else {
-                document.getElementById('pTitle').value = "";
-                document.getElementById('pBudget').value = "";
-                document.getElementById('pStart').value = "";
-                document.getElementById('pEnd').value = "";
             }
-            modal.classList.replace('hidden', 'flex');
+            document.getElementById('projectModal').classList.replace('hidden', 'flex');
         }
 
         function closeProjectModal() { document.getElementById('projectModal').classList.replace('flex', 'hidden'); }
@@ -156,18 +151,10 @@
                 category: document.getElementById('pCat').value,
                 startDate: document.getElementById('pStart').value,
                 endDate: document.getElementById('pEnd').value,
-                owner: userEmail, collaborators: [userEmail], tasks: [], createdAt: new Date()
+                owner: userEmail, collaborators: [userEmail], tasks: [], isArchived: false, createdAt: new Date()
             };
-
-            if(editProjectId) {
-                const p = projects.find(x => x.id === editProjectId);
-                await db.collection('life_projects').doc(editProjectId).update({
-                    title: data.title, budget: data.budget, category: data.category,
-                    startDate: data.startDate, endDate: data.endDate
-                });
-            } else {
-                await db.collection('life_projects').add(data);
-            }
+            if(editProjectId) await db.collection('life_projects').doc(editProjectId).update({ title: data.title, budget: data.budget, category: data.category, startDate: data.startDate, endDate: data.endDate });
+            else await db.collection('life_projects').add(data);
             closeProjectModal();
         }
 
@@ -182,88 +169,61 @@
 
         function renderUI() {
             const view = document.getElementById('projectsView');
-            view.innerHTML = projects.map(p => {
+            const filtered = projects.filter(p => isArchiveView ? p.isArchived : !p.isArchived);
+            view.innerHTML = filtered.map(p => {
                 const spent = (p.tasks || []).reduce((s, t) => s + Number(t.price || 0), 0);
                 const percent = Math.min((spent / p.budget) * 100, 100);
                 return `<div class="premium-card p-8 mb-4 shadow-2xl">
                     <div class="flex justify-between items-start mb-4">
                         <span class="text-[10px] px-3 py-1 glass rounded-full font-black text-slate-400 uppercase">${p.category}</span>
-                        <div class="flex gap-2">
+                        <div class="flex gap-4">
                              <button onclick="openProjectModal('${p.id}')" class="text-slate-500 text-xs"><i class="fas fa-edit"></i></button>
-                             <span class="text-xl font-black italic">₪${p.budget.toLocaleString()}</span>
+                             <button onclick="toggleProjectArchive('${p.id}', ${!p.isArchived})" class="text-slate-500 text-xs"><i class="fas ${p.isArchived ? 'fa-box-open' : 'fa-box'}"></i></button>
+                             <button onclick="deleteProject('${p.id}')" class="text-rose-900/50 text-xs"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
                     <div onclick="openProjectDetail('${p.id}')">
                         <h3 class="text-2xl font-black mb-4">${p.title}</h3>
-                        <div class="progress-container mb-3"><div class="progress-fill bg-purple-500" style="width: ${percent}%"></div></div>
+                        <div class="progress-container bg-white/5 h-1.5 rounded-full overflow-hidden mb-3"><div class="progress-fill bg-purple-500" style="width: ${percent}%"></div></div>
                         <div class="flex justify-between text-[10px] font-black uppercase text-slate-500">
-                            <span>נוצל ${percent.toFixed(0)}%</span>
-                            <span>סיום: ${p.endDate || '--'}</span>
+                            <span>₪${spent.toLocaleString()} / ₪${p.budget.toLocaleString()}</span>
+                            <span>${p.endDate || '--'}</span>
                         </div>
                     </div>
                 </div>`;
             }).join('');
         }
 
-        function openProjectDetail(id) {
-            currentProjectId = id;
-            document.getElementById('projectDetailModal').classList.remove('hidden');
-            renderProjectInfo();
+        async function toggleProjectArchive(id, status) { await db.collection('life_projects').doc(id).update({ isArchived: status }); }
+        async function deleteProject(id) { if(confirm("למחוק את הפרויקט לצמיתות?")) await db.collection('life_projects').doc(id).delete(); }
+        function toggleArchive() { 
+            isArchiveView = !isArchiveView; 
+            document.getElementById('archiveToggleBtn').innerText = isArchiveView ? "חזור לפעילים" : "צפה בארכיון";
+            renderUI(); 
         }
 
+        function openProjectDetail(id) { currentProjectId = id; document.getElementById('projectDetailModal').classList.remove('hidden'); renderProjectInfo(); }
         function renderProjectInfo() {
             const p = projects.find(x => x.id === currentProjectId);
             if(!p) return;
             const spent = (p.tasks || []).reduce((s, t) => s + Number(t.price || 0), 0);
             document.getElementById('detailTitle').innerText = p.title;
-            document.getElementById('detailProgressInfo').innerHTML = `
-                <div class="glass p-8 text-center">
-                    <div class="text-[10px] text-slate-500 font-black uppercase mb-2">יתרה נוכחית</div>
-                    <div class="text-4xl font-black italic">₪${(p.budget - spent).toLocaleString()}</div>
-                    <div class="text-[10px] text-slate-400 mt-2">יעד סיום: ${p.endDate || '--'}</div>
-                </div>`;
-            document.getElementById('tasksList').innerHTML = (p.tasks || []).map((t, i) => `
-                <div class="glass p-5 flex justify-between items-center border border-white/5">
-                    <div class="flex flex-col">
-                         <span class="font-bold cursor-pointer" onclick="editTask('${i}', 'name')">${t.name}</span>
-                         <span class="text-[9px] text-slate-600">לחץ לתיקון שם</span>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <div class="flex flex-col items-end">
-                             <span class="font-black text-purple-400 cursor-pointer" onclick="editTask('${i}', 'price')">₪${Number(t.price).toLocaleString()}</span>
-                             <span class="text-[9px] text-slate-600 font-bold">תיקון מחיר</span>
-                        </div>
-                        <button onclick="deleteTask(${i})" class="text-slate-700 text-xs"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>`).reverse().join('');
-        }
-
-        async function editTask(index, field) {
-            const p = projects.find(x => x.id === currentProjectId);
-            const tasks = [...p.tasks];
-            const newValue = prompt(field === 'name' ? "שם משימה חדש:" : "מחיר חדש:", field === 'name' ? tasks[index].name : tasks[index].price);
-            
-            if(newValue !== null) {
-                tasks[index][field] = field === 'price' ? Number(newValue) : newValue;
-                await db.collection('life_projects').doc(currentProjectId).update({ tasks });
-                renderProjectInfo();
-            }
+            document.getElementById('detailProgressInfo').innerHTML = `<div class="glass p-8 text-center"><div class="text-[10px] text-slate-500 uppercase mb-2">יתרה</div><div class="text-4xl font-black italic">₪${(p.budget - spent).toLocaleString()}</div></div>`;
+            document.getElementById('tasksList').innerHTML = (p.tasks || []).map((t, i) => `<div class="glass p-5 flex justify-between items-center"><div><span class="font-bold">${t.name}</span></div><div class="flex items-center gap-4"><span class="font-black text-purple-400">₪${Number(t.price).toLocaleString()}</span><button onclick="deleteTask(${i})" class="text-slate-700"><i class="fas fa-trash"></i></button></div></div>`).reverse().join('');
         }
 
         async function addTask() {
-            const name = document.getElementById('taskName').value;
-            const price = Number(document.getElementById('taskPrice').value);
-            if(!name || !price) return;
-            const docRef = db.collection('life_projects').doc(currentProjectId);
-            const p = projects.find(x => x.id === currentProjectId);
-            const tasks = [...(p.tasks || []), { name, price, date: new Date() }];
-            await docRef.update({ tasks });
-            document.getElementById('taskName').value = ''; document.getElementById('taskPrice').value = '';
-            renderProjectInfo();
+            const name = document.getElementById('taskName').value, price = Number(document.getElementById('taskPrice').value);
+            if(name && price) {
+                const docRef = db.collection('life_projects').doc(currentProjectId);
+                const p = projects.find(x => x.id === currentProjectId);
+                const tasks = [...(p.tasks || []), { name, price, date: new Date() }];
+                await docRef.update({ tasks });
+                document.getElementById('taskName').value = ''; document.getElementById('taskPrice').value = '';
+            }
         }
 
         async function deleteTask(index) {
-            if(!confirm("למחוק?")) return;
             const p = projects.find(x => x.id === currentProjectId);
             p.tasks.splice(index, 1);
             await db.collection('life_projects').doc(currentProjectId).update({ tasks: p.tasks });
@@ -279,20 +239,18 @@
         }
 
         function renderDashboard() {
-            const totalP = projects.reduce((s, p) => s + Number(p.budget), 0);
-            const totalS = projects.reduce((s, p) => s + (p.tasks || []).reduce((ts, t) => ts + Number(t.price), 0), 0);
+            const active = projects.filter(p => !p.isArchived);
+            const totalP = active.reduce((s, p) => s + Number(p.budget), 0);
+            const totalS = active.reduce((s, p) => s + (p.tasks || []).reduce((ts, t) => ts + Number(t.price), 0), 0);
             document.getElementById('totalPlanned').innerText = `₪${totalP.toLocaleString()}`;
             document.getElementById('totalSpent').innerText = `₪${totalS.toLocaleString()}`;
+            document.getElementById('forecastText').innerText = totalS > totalP ? "חריגה בתקציב!" : "הכל תקין.";
             
             const ctx = document.getElementById('mainChart').getContext('2d');
             if(myChart) myChart.destroy();
             myChart = new Chart(ctx, {
                 type: 'bar',
-                data: {
-                    labels: projects.map(p => p.title),
-                    datasets: [{ label: 'תקציב', data: projects.map(p => p.budget), backgroundColor: '#8b5cf6', borderRadius: 10 },
-                               { label: 'בוצע', data: projects.map(p => (p.tasks||[]).reduce((ts,t)=>ts+Number(t.price),0)), backgroundColor: '#f43f5e', borderRadius: 10 }]
-                },
+                data: { labels: active.map(p => p.title), datasets: [{ label: 'תקציב', data: active.map(p => p.budget), backgroundColor: '#8b5cf6' }, { label: 'בוצע', data: active.map(p => (p.tasks||[]).reduce((ts,t)=>ts+Number(t.price),0)), backgroundColor: '#f43f5e' }] },
                 options: { responsive: true, maintainAspectRatio: false }
             });
         }
