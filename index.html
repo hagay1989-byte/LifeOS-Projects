@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V97 - Gantt Vision</title>
+    <title>LifeOS V106 - Stable & Styled</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,15 +12,23 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <style>
-        body { font-family: 'Heebo', sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); color: white; text-align: right; min-height: 100vh; }
+        body { font-family: 'Heebo', sans-serif; background: radial-gradient(circle at top right, #1e1b4b, #0f172a 80%); background-attachment: fixed; color: white; text-align: right; min-height: 100vh; margin: 0; }
         .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px; }
-        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 32px; transition: all 0.3s ease; }
+        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 32px; transition: all 0.3s ease; cursor: pointer; }
         
-        /* עיצוב הגאנט */
+        /* תיקון רקע מודאלים יוקרתי */
+        .modal-overlay { background: rgba(10, 15, 28, 0.96) !important; backdrop-filter: blur(20px); z-index: 1000; }
+        
+        .progress-bar { background: rgba(255,255,255,0.1); height: 6px; border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; transition: width 0.8s ease; background: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.3); }
+        
+        input, select { background: rgba(255, 255, 255, 0.05) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 16px !important; color: white !important; padding: 12px !important; }
+        
+        /* Gantt UI */
         .gantt-container { overflow-x: auto; padding: 10px 0; }
-        .gantt-row { display: flex; align-items: center; margin-bottom: 15px; height: 30px; }
-        .gantt-label { width: 100px; font-size: 11px; font-weight: 900; opacity: 0.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 10px; }
-        .gantt-track { flex: 1; background: rgba(255,255,255,0.03); height: 12px; border-radius: 20px; position: relative; }
+        .gantt-row { display: grid; grid-template-columns: 100px 1fr; align-items: center; margin-bottom: 15px; }
+        .gantt-label { font-size: 11px; font-weight: 900; opacity: 0.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 10px; }
+        .gantt-track { background: rgba(255,255,255,0.03); height: 12px; border-radius: 20px; position: relative; }
         .gantt-bar { position: absolute; height: 100%; background: white; border-radius: 20px; box-shadow: 0 0 15px rgba(255,255,255,0.2); }
         
         ::-webkit-scrollbar { display: none; }
@@ -28,25 +36,22 @@
 </head>
 <body class="p-4 flex justify-center items-center">
 
-    <div id="authScreen" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900">
+    <div id="authScreen" class="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950">
         <div class="glass-panel p-10 w-full max-w-sm text-center">
             <h1 class="text-4xl font-black mb-10 italic">LifeOS</h1>
             <input type="email" id="emailInput" placeholder="אימייל" class="w-full mb-3 text-left ltr" dir="ltr">
             <input type="password" id="passInput" placeholder="סיסמה" class="w-full mb-8 text-left ltr" dir="ltr">
-            <div class="flex gap-2">
-                <button onclick="handleAuth('login')" class="flex-1 py-4 bg-white text-slate-900 font-black rounded-2xl">כניסה</button>
-                <button onclick="handleAuth('signup')" class="flex-1 py-4 border border-white/20 font-black rounded-2xl">הרשמה</button>
-            </div>
+            <button onclick="handleAuth('login')" class="w-full py-4 bg-white text-slate-900 font-black rounded-2xl">כניסה</button>
         </div>
     </div>
 
     <div id="appScreen" class="hidden glass-panel w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden shadow-2xl relative">
         <header class="p-6 flex justify-between items-center border-b border-white/5">
             <div class="flex gap-3 items-center">
-                <button onclick="goHome()" class="p-3 bg-white/5 rounded-xl"><i class="fas fa-home"></i></button>
-                <button onclick="openPartnerModal()" class="p-3 bg-white/5 rounded-xl"><i class="fas fa-fingerprint"></i></button>
+                <button onclick="goHome()" class="p-3 bg-white/5 rounded-xl border border-white/10"><i class="fas fa-home"></i></button>
+                <button onclick="openPartnerModal()" class="p-3 bg-white/5 rounded-xl border border-white/10 text-purple-400"><i class="fas fa-fingerprint"></i></button>
                 <div class="mr-3">
-                    <h1 id="headerTitle" class="text-xl font-black italic">LifeOS</h1>
+                    <h1 class="text-xl font-black italic">LifeOS</h1>
                     <span id="partnerStatus" class="text-[7px] text-white/30 uppercase mt-1 block"></span>
                 </div>
             </div>
@@ -65,14 +70,132 @@
                     <div class="glass-card p-6 text-center"><span class="text-[9px] text-white/40 block mb-1 uppercase">תכנון</span><div class="text-xl font-black" id="totalPlanned">₪0</div></div>
                     <div class="glass-card p-6 text-center"><span class="text-[9px] text-white/40 block mb-1 uppercase">נוצל</span><div class="text-xl font-black text-purple-400" id="totalSpent">₪0</div></div>
                 </div>
-
-                <div class="glass-card p-6">
-                    <h4 class="text-[10px] font-black uppercase mb-6 opacity-40 tracking-widest text-center">ציר זמן פרויקטים (Gantt)</h4>
-                    <div id="ganttView" class="gantt-container"></div>
-                </div>
-
+                <div class="glass-card p-6"><div id="ganttView" class="gantt-container"></div></div>
                 <div class="glass-card p-6 h-64"><canvas id="mainChart"></canvas></div>
             </div>
         </main>
 
-        <button id="addBtn" onclick="openProjectModal()" class="absolute bottom-8 left-8 w-16 h-16 bg-white text-slate-900 rounded-2xl flex items-center justify-center shadow-2xl z-40">
+        <button id="addBtn" onclick="openProjectModal()" class="absolute bottom-8 left-8 w-16 h-16 bg-white text-slate-900 rounded-2xl flex items-center justify-center shadow-2xl z-40 active:scale-90 transition">
+            <i class="fas fa-plus text-xl"></i>
+        </button>
+    </div>
+
+    <div id="projectModal" class="fixed inset-0 z-[400] hidden items-center justify-center modal-overlay p-6 text-right">
+        <div class="glass-panel p-8 w-full max-w-md relative">
+            <button onclick="closeProjectModal()" class="absolute top-6 left-6 text-white/40"><i class="fas fa-times"></i></button>
+            <h3 class="text-xl font-black mb-8 text-center italic">פרויקט חדש</h3>
+            <select id="pCat" class="w-full mb-4 text-sm"><option>🏠 שיפוץ</option><option>✈️ טיול</option><option>👩‍🍳 עסק</option></select>
+            <input type="text" id="pTitle" placeholder="שם הפרויקט" class="w-full mb-4 text-sm">
+            <div class="grid grid-cols-2 gap-3 mb-6 text-xs">
+                <div><label class="block opacity-40 mb-1">התחלה</label><input type="date" id="pStart" class="w-full"></div>
+                <div><label class="block opacity-40 mb-1">סיום</label><input type="date" id="pEnd" class="w-full"></div>
+            </div>
+            <input type="number" id="pBudget" placeholder="תקציב (₪)" class="w-full mb-8 text-xl font-black" dir="ltr">
+            <button onclick="saveProject()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">שמור פרויקט</button>
+        </div>
+    </div>
+
+    <div id="projectDetailModal" class="fixed inset-0 z-[300] hidden flex-col modal-overlay p-6 overflow-y-auto">
+        <header class="flex justify-between items-center mb-8">
+            <button onclick="closeProjectDetail()" class="p-3 bg-white/5 rounded-xl"><i class="fas fa-arrow-right"></i></button>
+            <h2 id="detailTitle" class="text-2xl font-black italic"></h2>
+        </header>
+        <div id="tasksList" class="space-y-4 pb-48"></div>
+        <div class="fixed bottom-6 left-6 right-6 glass-panel p-4 flex gap-2">
+            <input type="text" id="taskName" placeholder="תיאור הוצאה" class="flex-1 p-3">
+            <input type="number" id="taskPrice" placeholder="₪" class="w-24 text-center font-bold" dir="ltr">
+            <button onclick="addTask()" class="w-12 h-12 bg-white text-slate-900 rounded-xl flex items-center justify-center"><i class="fas fa-plus"></i></button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = { 
+            apiKey: "AIzaSyB7U5xw_FMThsmM2hNMRnkdMYnD2cutH2s", authDomain: "project-manager-4702c.firebaseapp.com", 
+            projectId: "project-manager-4702c", storageBucket: "project-manager-4702c.firebasestorage.app", 
+            messagingSenderId: "941533299304", appId: "1:941533299304:web:92f8940e93a96b1f8b71dd" 
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth(), db = firebase.firestore();
+        let projects = [], currentProjectId = null, userEmail = "", isDashboard = false, isArchiveView = false, myChart = null;
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                userEmail = user.email.toLowerCase();
+                document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('appScreen').classList.remove('hidden');
+                loadData();
+            } else {
+                document.getElementById('authScreen').classList.remove('hidden');
+                document.getElementById('appScreen').classList.add('hidden');
+            }
+        });
+
+        async function handleAuth(type) {
+            const email = document.getElementById('emailInput').value, pass = document.getElementById('passInput').value;
+            try { await auth.signInWithEmailAndPassword(email, pass); } catch(e) { alert(e.message); }
+        }
+
+        function loadData() {
+            db.collection('family_plans').onSnapshot(snap => {
+                projects = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                renderUI(); if(isDashboard) renderDashboard();
+            });
+        }
+
+        function renderUI() {
+            const container = document.getElementById('projectsView');
+            const filtered = projects.filter(p => isArchiveView ? p.isArchived === true : !p.isArchived);
+            container.innerHTML = filtered.map(p => {
+                const spent = (p.tasks || []).reduce((s, t) => s + Number(t.price || 0), 0);
+                const perc = Math.min((spent / (p.budget || p.limit || 1)) * 100, 100);
+                return `<div class="glass-card p-8" onclick="openProjectDetail('${p.id}')">
+                    <h3 class="text-2xl font-black mb-6 italic">${p.title || p.name}</h3>
+                    <div class="progress-bar mb-3"><div class="progress-fill" style="width: ${perc}%"></div></div>
+                    <div class="text-[10px] font-bold text-white/30 uppercase text-left" dir="ltr">₪${spent.toLocaleString()} / ₪${(p.budget || p.limit).toLocaleString()}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderDashboard() {
+            const active = projects.filter(p => !p.isArchived);
+            const totalP = active.reduce((s, p) => s + Number(p.budget || p.limit), 0);
+            const totalS = active.reduce((s, p) => s + (p.tasks || []).reduce((ts, t) => ts + Number(t.price), 0), 0);
+            document.getElementById('totalPlanned').innerText = `₪${totalP.toLocaleString()}`;
+            document.getElementById('totalSpent').innerText = `₪${totalS.toLocaleString()}`;
+
+            const gantt = document.getElementById('ganttView');
+            gantt.innerHTML = active.map(p => {
+                const start = new Date(p.startDate || Date.now()), end = new Date(p.endDate || (Date.now() + 2592000000));
+                const left = (start.getMonth() / 12) * 100, width = ((end.getMonth() - start.getMonth() + 1) / 12) * 100;
+                return `<div class="gantt-row"><div class="gantt-label">${p.title || p.name}</div><div class="gantt-track"><div class="gantt-bar" style="right:${left}%; width:${width}%"></div></div></div>`;
+            }).join('');
+        }
+
+        function openProjectModal() { document.getElementById('projectModal').classList.replace('hidden', 'flex'); }
+        function closeProjectModal() { document.getElementById('projectModal').classList.replace('flex', 'hidden'); }
+        function openProjectDetail(id) { currentProjectId = id; document.getElementById('projectDetailModal').classList.replace('hidden', 'flex'); renderProjectInfo(); }
+        function closeProjectDetail() { document.getElementById('projectDetailModal').classList.replace('flex', 'hidden'); currentProjectId = null; }
+        function toggleView() { isDashboard = !isDashboard; document.getElementById('projectsView').classList.toggle('hidden', isDashboard); document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard); if(isDashboard) renderDashboard(); }
+        function goHome() { isDashboard = false; document.getElementById('dashboardView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); }
+        async function saveProject() {
+            const title = document.getElementById('pTitle').value, budget = Number(document.getElementById('pBudget').value), s = document.getElementById('pStart').value, e = document.getElementById('pEnd').value;
+            await db.collection('family_plans').add({ title, budget, startDate: s, endDate: e, tasks: [], isArchived: false, collaborators: [userEmail] });
+            closeProjectModal();
+        }
+        async function addTask() {
+            const name = document.getElementById('taskName').value, price = Number(document.getElementById('taskPrice').value);
+            if(name && price) {
+                const p = projects.find(x => x.id === currentProjectId);
+                const tasks = [...(p.tasks || []), { name, price, date: new Date() }];
+                await db.collection('family_plans').doc(currentProjectId).update({ tasks });
+                document.getElementById('taskName').value = ''; document.getElementById('taskPrice').value = '';
+            }
+        }
+        function renderProjectInfo() {
+            const p = projects.find(x => x.id === currentProjectId); if(!p) return;
+            document.getElementById('detailTitle').innerText = p.title || p.name;
+            document.getElementById('tasksList').innerHTML = (p.tasks || []).map(t => `<div class="glass-card p-5 flex justify-between"><span>${t.name}</span><span class="font-black">₪${t.price}</span></div>`).reverse().join('');
+        }
+    </script>
+</body>
+</html>
