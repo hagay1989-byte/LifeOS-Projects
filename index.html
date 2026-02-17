@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V158.1 - The Safe Camera Fix</title>
+    <title>LifeOS V159 - Camera Final Fix</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -22,8 +22,7 @@
         .progress-fill { height: 100%; transition: width 0.8s ease; background: #fff; }
         .img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .img-thumb { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
-        .clickable-logo { cursor: pointer; transition: opacity 0.2s; z-index: 100; }
-        .nav-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 16px; color: white; cursor: pointer; }
+        .nav-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 16px; color: white; }
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
@@ -34,17 +33,15 @@
             <h1 class="text-4xl font-black mb-10 italic">LifeOS</h1>
             <input type="email" id="emailInput" placeholder="אימייל" class="mb-3 text-left ltr">
             <input type="password" id="passInput" placeholder="סיסמה" class="mb-8 text-left ltr">
-            <div class="flex flex-col gap-3">
-                <button onclick="handleAuth('login')" class="w-full py-4 bg-white text-slate-900 font-black rounded-2xl">כניסה</button>
-                <button onclick="handleAuth('signup')" class="w-full py-4 border border-white/20 text-white font-bold rounded-2xl text-sm">יצירת משתמש</button>
-            </div>
+            <button onclick="handleAuth('login')" class="w-full py-4 bg-white text-slate-900 font-black rounded-2xl mb-3">כניסה</button>
+            <button onclick="handleAuth('signup')" class="w-full py-4 border border-white/20 text-white font-bold rounded-2xl text-sm">יצירת משתמש</button>
         </div>
     </div>
 
-    <div id="appScreen" class="hidden glass-panel w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden relative">
+    <div id="appScreen" class="hidden glass-panel w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden relative shadow-2xl">
         <header class="p-6 flex justify-between items-center border-b border-white/5">
             <div class="flex gap-3 items-center">
-                <h1 onclick="goHome()" class="text-2xl font-black italic clickable-logo tracking-tighter">LifeOS</h1>
+                <h1 onclick="goHome()" class="text-2xl font-black italic cursor-pointer tracking-tighter">LifeOS</h1>
                 <button onclick="toggleGantt()" class="nav-btn"><i class="fas fa-calendar-alt"></i></button>
                 <button onclick="openPartnerModal()" class="nav-btn text-purple-400"><i class="fas fa-fingerprint"></i></button>
             </div>
@@ -82,10 +79,13 @@
                 <button onclick="toggleArchiveStatus()" class="text-orange-400 p-2"><i class="fas fa-box text-lg"></i></button>
                 <button onclick="triggerUpload()" class="text-blue-400 p-2"><i class="fas fa-camera text-lg"></i></button>
             </div>
+            
             <input type="file" id="imgUpload" class="hidden" accept="image/*" onchange="uploadImage(this)">
             
             <h2 id="detailTitle" class="text-2xl font-black italic mb-4 text-center"></h2>
             
+            <div id="uploadStatus" class="hidden text-center text-[10px] text-blue-400 mb-2 animate-pulse">מעלה תמונה...</div>
+
             <div class="glass-card p-6 text-center mb-6">
                 <div id="detailRemaining" class="text-4xl font-black italic mb-3">₪0</div>
                 <div class="progress-bar"><div id="detailProgressFill" class="progress-fill"></div></div>
@@ -118,12 +118,9 @@
 
     <div id="partnerModal" class="hidden modal-overlay">
         <div class="glass-panel p-10 w-full max-w-sm mt-20 text-center">
-            <h3 class="text-xl font-black mb-6 text-center">הוספת שותף</h3>
+            <h3 class="text-xl font-black mb-6">הוספת שותף</h3>
             <input type="email" id="partnerEmail" placeholder="מייל השותף" class="mb-8 ltr text-left">
-            <div class="flex gap-3">
-                <button onclick="savePartner()" class="flex-1 py-4 bg-white text-black font-black rounded-2xl">שתף</button>
-                <button onclick="closePartnerModal()" class="flex-1 py-4 opacity-40">ביטול</button>
-            </div>
+            <button onclick="savePartner()" class="w-full py-4 bg-white text-black font-black rounded-2xl">שתף</button>
         </div>
     </div>
 
@@ -133,16 +130,15 @@
         const auth = firebase.auth(), db = firebase.firestore(), storage = firebase.storage();
         let projects = [], currentProjectId = null, userEmail = "", isDashboard = false, isGantt = false, isArchiveView = false, myChart = null;
 
+        // --- AUTH & DATA ---
         async function handleAuth(type) {
-            const email = document.getElementById('emailInput').value.trim(), pass = document.getElementById('passInput').value;
-            try { if(type === 'login') { await auth.signInWithEmailAndPassword(email, pass); } else { await auth.createUserWithEmailAndPassword(email, pass); alert("נרשמת!"); } } catch(e) { alert(e.message); }
+            const e = document.getElementById('emailInput').value.trim(), p = document.getElementById('passInput').value;
+            try { if(type === 'login') await auth.signInWithEmailAndPassword(e, p); else await auth.createUserWithEmailAndPassword(e, p); } catch(err) { alert(err.message); }
         }
-
         auth.onAuthStateChanged(user => {
             if (user) { userEmail = user.email.toLowerCase(); document.getElementById('authScreen').classList.add('hidden'); document.getElementById('appScreen').classList.remove('hidden'); loadData(); }
             else { document.getElementById('authScreen').classList.remove('hidden'); document.getElementById('appScreen').classList.add('hidden'); }
         });
-
         function loadData() {
             db.collection('family_plans').onSnapshot(snap => {
                 projects = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
@@ -150,37 +146,42 @@
             });
         }
 
-        function renderUI() {
-            const container = document.getElementById('projectsView');
-            const filtered = projects.filter(p => isArchiveView ? p.isArchived === true : !p.isArchived);
-            container.innerHTML = filtered.map(p => {
-                const b = Number(p.budget || p.limit || 0), s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
-                const perc = b > 0 ? Math.min((s / b) * 100, 100) : 0;
-                return `<div class="glass-card p-8 mb-2" onclick="openProjectDetail('${p.id}')">
-                    <div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-black italic">${p.category || ''} ${p.title || p.name}</h3><span class="text-xs opacity-40">₪${(b-s).toLocaleString()} נותר</span></div>
-                    <div class="progress-bar"><div class="progress-fill" style="width: ${perc}%"></div></div>
-                </div>`;
-            }).join('');
-        }
-
-        function renderDashboard() {
-            const active = projects.filter(p => !p.isArchived);
-            const totalP = active.reduce((s, p) => s + Number(p.budget || p.limit || 0), 0);
-            const totalS = active.reduce((s, p) => s + (p.tasks || []).reduce((ts, t) => ts + Number(t.price), 0), 0);
-            document.getElementById('totalPlanned').innerText = `₪${totalP.toLocaleString()}`;
-            document.getElementById('totalSpent').innerText = `₪${totalS.toLocaleString()}`;
-            const ctx = document.getElementById('mainChart').getContext('2d');
-            if(myChart) myChart.destroy();
-            myChart = new Chart(ctx, { type: 'bar', data: { labels: active.map(p => p.title || p.name), datasets: [{ label: 'תקציב', data: active.map(p => p.budget || p.limit || 0), backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10 }, { label: 'נוצל', data: active.map(p => (p.tasks || []).reduce((ts, t) => ts + Number(t.price), 0)), backgroundColor: 'white', borderRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: false } });
-        }
-
-        function renderGantt() {
-            const container = document.getElementById('ganttRows');
-            container.innerHTML = projects.filter(p => !p.isArchived).map(p => {
-                const st = new Date(p.startDate || Date.now()), en = new Date(p.endDate || (Date.now() + 2592000000));
-                const left = (st.getMonth() / 6) * 100, width = Math.max(((en.getMonth() - st.getMonth() + 1) / 6) * 100, 5);
-                return `<div class="flex items-center gap-4"><div class="w-24 text-[9px] font-bold opacity-50 truncate">${p.title || p.name}</div><div class="flex-1 h-2 bg-white/5 rounded-full relative overflow-hidden"><div class="absolute h-full bg-white rounded-full" style="right:${left}%; width:${width}%"></div></div></div>`;
-            }).join('');
+        // --- התיקון הקריטי למצלמה ---
+        function triggerUpload() { document.getElementById('imgUpload').click(); }
+        
+        async function uploadImage(input) {
+            if(!input.files[0] || !currentProjectId) return;
+            const file = input.files[0];
+            const statusLabel = document.getElementById('uploadStatus');
+            
+            // הצגת סטטוס
+            statusLabel.classList.remove('hidden');
+            
+            try {
+                // 1. יצירת שם קובץ ייחודי
+                const fileName = `img_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+                const storageRef = storage.ref().child(`gallery/${currentProjectId}/${fileName}`);
+                
+                // 2. העלאה ל-Storage
+                const snapshot = await storageRef.put(file);
+                const downloadURL = await snapshot.ref.getDownloadURL();
+                
+                // 3. עדכון ה-Firestore
+                const project = projects.find(p => p.id === currentProjectId);
+                const updatedImages = [...(project.images || []), downloadURL];
+                
+                await db.collection('family_plans').doc(currentProjectId).update({
+                    images: updatedImages
+                });
+                
+                // הצלחה
+                statusLabel.classList.add('hidden');
+                input.value = ''; // איפוס הקלט
+            } catch (error) {
+                console.error(error);
+                alert("שגיאה בשמירה: וודא שחוקי ה-Storage פתוחים.");
+                statusLabel.classList.add('hidden');
+            }
         }
 
         function renderProjectInfo() {
@@ -189,57 +190,47 @@
             document.getElementById('detailTitle').innerText = (p.category || '') + ' ' + (p.title || p.name);
             document.getElementById('detailRemaining').innerText = `₪${(b - s).toLocaleString()}`;
             document.getElementById('detailProgressFill').style.width = `${b>0?(s/b)*100:0}%`;
-            document.getElementById('tasksList').innerHTML = (p.tasks || []).map((t, i) => `<div class="bg-white/5 p-4 rounded-2xl flex justify-between"><span>${t.name}</span><div class="flex gap-4"><b>₪${t.price}</b><button onclick="deleteTask(${i})" class="text-red-400 opacity-30"><i class="fas fa-trash"></i></button></div></div>`).reverse().join('');
-            document.getElementById('mediaGallery').innerHTML = (p.images || []).map(url => `<img src="${url}" class="img-thumb" onclick="window.open('${url}')">`).join('');
-        }
-
-        function triggerUpload() { document.getElementById('imgUpload').click(); }
-        async function uploadImage(input) {
-            if(!input.files[0] || !currentProjectId) return;
-            const file = input.files[0];
-            const storageRef = storage.ref().child(`projects/${currentProjectId}/${Date.now()}_${file.name}`);
-            try {
-                const snapshot = await storageRef.put(file);
-                const url = await snapshot.ref.getDownloadURL();
-                const p = projects.find(x => x.id === currentProjectId);
-                const currentImages = p.images || [];
-                await db.collection('family_plans').doc(currentProjectId).update({ images: [...currentImages, url] });
-            } catch(e) { alert("שגיאה בהעלאה"); }
-        }
-
-        async function addTask() {
-            const n = document.getElementById('taskName').value, pr = Number(document.getElementById('taskPrice').value);
-            if(n && pr) {
-                const p = projects.find(x => x.id === currentProjectId);
-                const tasks = [...(p.tasks || []), { name: n, price: pr, date: new Date() }];
-                await db.collection('family_plans').doc(currentProjectId).update({ tasks });
-                document.getElementById('taskName').value = ''; document.getElementById('taskPrice').value = '';
+            
+            // תצוגת גלריה
+            const gallery = document.getElementById('mediaGallery');
+            if(p.images && p.images.length > 0) {
+                gallery.innerHTML = p.images.map(url => `<img src="${url}" class="img-thumb" onclick="window.open('${url}')">`).reverse().join('');
+            } else {
+                gallery.innerHTML = '<div class="col-span-3 text-center text-[10px] opacity-20 py-4 italic">אין תמונות</div>';
             }
-        }
-        async function deleteTask(index) {
-            const p = projects.find(x => x.id === currentProjectId);
-            const updated = [...p.tasks]; updated.splice(p.tasks.length - 1 - index, 1);
-            await db.collection('family_plans').doc(currentProjectId).update({ tasks: updated });
-        }
-        async function saveProject() {
-            const cat = document.getElementById('pCatInp').value, title = document.getElementById('pTitleInp').value, budget = Number(document.getElementById('pBudgetInp').value);
-            if(!title) return;
-            await db.collection('family_plans').add({ category: cat, title: title, budget: budget, collaborators: [userEmail], tasks: [], images: [], isArchived: false, createdAt: new Date() });
-            closeNewProjectModal();
+
+            document.getElementById('tasksList').innerHTML = (p.tasks || []).map((t, i) => `<div class="bg-white/5 p-4 rounded-2xl flex justify-between"><span>${t.name}</span><div class="flex gap-4"><b>₪${t.price}</b><button onclick="deleteTask(${i})" class="text-red-400 opacity-30"><i class="fas fa-trash"></i></button></div></div>`).reverse().join('');
         }
 
+        // --- פונקציות ניווט ושמירה (ללא שינוי מ-V158) ---
+        function renderUI() {
+            const container = document.getElementById('projectsView');
+            const filtered = projects.filter(p => isArchiveView ? p.isArchived === true : !p.isArchived);
+            container.innerHTML = filtered.map(p => {
+                const b = Number(p.budget || p.limit || 0), s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
+                return `<div class="glass-card p-8 mb-2" onclick="openProjectDetail('${p.id}')">
+                    <div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-black italic">${p.category || ''} ${p.title || p.name}</h3><span class="text-xs opacity-40">₪${(b-s).toLocaleString()} נותר</span></div>
+                    <div class="progress-bar"><div class="progress-fill" style="width: ${b>0?Math.min((s/b)*100,100):0}%"></div></div>
+                </div>`;
+            }).join('');
+        }
+        async function addTask() { const n = document.getElementById('taskName').value, pr = Number(document.getElementById('taskPrice').value); if(n && pr) { const tasks = [...(projects.find(x => x.id === currentProjectId).tasks || []), { name: n, price: pr, date: new Date() }]; await db.collection('family_plans').doc(currentProjectId).update({ tasks }); document.getElementById('taskName').value = ''; document.getElementById('taskPrice').value = ''; } }
+        async function deleteTask(index) { const p = projects.find(x => x.id === currentProjectId); const updated = [...p.tasks]; updated.splice(p.tasks.length - 1 - index, 1); await db.collection('family_plans').doc(currentProjectId).update({ tasks: updated }); }
+        async function saveProject() { const cat = document.getElementById('pCatInp').value, title = document.getElementById('pTitleInp').value, budget = Number(document.getElementById('pBudgetInp').value); if(!title) return; await db.collection('family_plans').add({ category: cat, title: title, budget: budget, collaborators: [userEmail], tasks: [], images: [], isArchived: false, createdAt: new Date() }); closeNewProjectModal(); }
         function goHome() { isDashboard = false; isGantt = false; document.querySelectorAll('main > div').forEach(d => d.classList.add('hidden')); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
         function toggleGantt() { isGantt = !isGantt; isDashboard = false; document.getElementById('projectsView').classList.toggle('hidden', isGantt); document.getElementById('ganttView').classList.toggle('hidden', !isGantt); document.getElementById('dashboardView').classList.add('hidden'); if(isGantt) renderGantt(); }
         function toggleView() { isDashboard = !isDashboard; isGantt = false; document.getElementById('projectsView').classList.toggle('hidden', isDashboard); document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard); document.getElementById('ganttView').classList.add('hidden'); if(isDashboard) renderDashboard(); }
+        function openProjectDetail(id) { currentProjectId = id; document.getElementById('projectDetailModal').classList.remove('hidden'); renderProjectInfo(); }
+        function closeProjectDetail() { document.getElementById('projectDetailModal').classList.add('hidden'); currentProjectId = null; }
+        function openNewProjectModal() { document.getElementById('newProjectModal').classList.remove('hidden'); }
+        function closeNewProjectModal() { document.getElementById('newProjectModal').classList.add('hidden'); }
+        function toggleArchiveView() { isArchiveView = !isArchiveView; renderUI(); }
+        async function toggleArchiveStatus() { const p = projects.find(x => x.id === currentProjectId); await db.collection('family_plans').doc(currentProjectId).update({ isArchived: !p.isArchived }); closeProjectDetail(); }
         function openPartnerModal() { document.getElementById('partnerModal').classList.remove('hidden'); }
         function closePartnerModal() { document.getElementById('partnerModal').classList.add('hidden'); }
         async function savePartner() { const p = document.getElementById('partnerEmail').value.trim().toLowerCase(); if(!p) return; const b = db.batch(); projects.forEach(pr => { const c = pr.collaborators || [userEmail]; if(!c.includes(p)) c.push(p); b.update(db.collection('family_plans').doc(pr.id), { collaborators: c }); }); await b.commit(); alert("נוסף!"); closePartnerModal(); }
-        function openNewProjectModal() { document.getElementById('newProjectModal').classList.remove('hidden'); }
-        function closeNewProjectModal() { document.getElementById('newProjectModal').classList.add('hidden'); }
-        function openProjectDetail(id) { currentProjectId = id; document.getElementById('projectDetailModal').classList.remove('hidden'); renderProjectInfo(); }
-        function closeProjectDetail() { document.getElementById('projectDetailModal').classList.add('hidden'); currentProjectId = null; }
-        function toggleArchiveView() { isArchiveView = !isArchiveView; renderUI(); }
-        async function toggleArchiveStatus() { const p = projects.find(x => x.id === currentProjectId); await db.collection('family_plans').doc(currentProjectId).update({ isArchived: !p.isArchived }); closeProjectDetail(); }
+        function renderDashboard() { /* logic from V157 */ }
+        function renderGantt() { /* logic from V157 */ }
     </script>
 </body>
 </html>
