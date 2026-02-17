@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V117 - Edit & Detail Fix</title>
+    <title>LifeOS V118 - UI Full Details Fix</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -17,8 +17,8 @@
         .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 32px; transition: all 0.3s ease; cursor: pointer; }
         .modal-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10, 15, 28, 0.96); backdrop-filter: blur(20px); z-index: 1000; padding: 20px; }
         input, select { background: rgba(255, 255, 255, 0.9) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 16px !important; color: #0f172a !important; padding: 12px !important; width: 100%; }
-        .progress-bar { background: rgba(255,255,255,0.1); height: 6px; border-radius: 10px; overflow: hidden; }
-        .progress-fill { height: 100%; transition: width 0.8s ease; background: #fff; }
+        .progress-bar { background: rgba(255,255,255,0.1); height: 8px; border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; transition: width 0.8s ease; background: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.3); }
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
@@ -37,7 +37,7 @@
         <header class="p-6 flex justify-between items-center border-b border-white/5">
             <div class="flex gap-3 items-center">
                 <button onclick="goHome()" class="p-3 bg-white/5 rounded-xl border border-white/10"><i class="fas fa-home"></i></button>
-                <button onclick="toggleGantt()" class="p-3 bg-white/5 rounded-xl border border-white/10"><i class="fas fa-calendar-alt text-white"></i></button>
+                <button onclick="toggleGantt()" class="p-3 bg-white/5 rounded-xl border border-white/10 text-white"><i class="fas fa-calendar-alt"></i></button>
                 <h1 class="text-xl font-black italic mr-2">LifeOS</h1>
             </div>
             <div class="flex gap-2">
@@ -49,7 +49,6 @@
 
         <main class="flex-1 overflow-y-auto p-6">
             <div id="projectsView" class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-24"></div>
-            
             <div id="dashboardView" class="hidden space-y-6 pb-24">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="glass-card p-6 text-center"><span>תכנון</span><div class="text-xl font-black" id="totalPlanned">₪0</div></div>
@@ -65,29 +64,38 @@
     </div>
 
     <div id="projectDetailModal" class="hidden modal-overlay">
-        <div class="glass-panel p-8 w-full max-w-md h-[80vh] flex flex-col relative text-right">
+        <div class="glass-panel p-8 w-full max-w-md h-[85vh] flex flex-col relative text-right">
             <button onclick="closeProjectDetail()" class="absolute top-4 left-4 text-white/40"><i class="fas fa-times"></i></button>
-            <h2 id="detailTitle" class="text-2xl font-black italic mb-6 text-white text-center"></h2>
+            <h2 id="detailTitle" class="text-2xl font-black italic mb-4 text-center"></h2>
+            
+            <div id="detailStats" class="mb-6 space-y-4">
+                <div class="glass-card p-4 text-center">
+                    <div class="text-[10px] text-white/40 uppercase mb-1">יתרה נותרה</div>
+                    <div id="detailRemaining" class="text-3xl font-black italic">₪0</div>
+                </div>
+                <div class="px-2">
+                    <div class="progress-bar"><div id="detailProgressFill" class="progress-fill" style="width: 0%"></div></div>
+                    <div id="detailSpentText" class="text-[10px] text-white/30 mt-2 uppercase font-bold"></div>
+                </div>
+            </div>
+
             <div id="tasksList" class="flex-1 overflow-y-auto space-y-3 mb-6"></div>
+            
             <div class="space-y-3">
                 <input type="text" id="taskName" placeholder="מה ההוצאה?">
-                <input type="number" id="taskPrice" placeholder="₪">
-                <button onclick="addTask()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">הוסף</button>
+                <input type="number" id="taskPrice" placeholder="מחיר (₪)">
+                <button onclick="addTask()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">הוסף הוצאה</button>
             </div>
         </div>
     </div>
 
     <div id="newProjectModal" class="hidden modal-overlay">
-        <div class="glass-panel p-10 w-full max-w-md relative">
+        <div class="glass-panel p-10 w-full max-w-md relative text-right">
             <button onclick="closeNewProjectModal()" class="absolute top-4 left-4 text-white/40"><i class="fas fa-times"></i></button>
-            <h3 id="modalHeaderTitle" class="text-xl font-black mb-8 text-center italic text-white">פרויקט חדש</h3>
-            <select id="pCat" class="mb-4">
-                <option>🏠 שיפוץ</option><option>✈️ טיול</option><option>👩‍🍳 עסק</option><option>🧸 משפחה</option>
-            </select>
+            <h3 id="modalHeaderTitle" class="text-xl font-black mb-8 text-center italic">פרויקט חדש</h3>
+            <select id="pCat" class="mb-4"><option>🏠 שיפוץ</option><option>✈️ טיול</option><option>👩‍🍳 עסק</option><option>🧸 משפחה</option></select>
             <input type="text" id="pTitle" placeholder="שם הפרויקט" class="mb-4">
-            <div class="grid grid-cols-2 gap-3 mb-6">
-                <input type="date" id="pStart"><input type="date" id="pEnd">
-            </div>
+            <div class="grid grid-cols-2 gap-3 mb-6"><input type="date" id="pStart"><input type="date" id="pEnd"></div>
             <input type="number" id="pBudget" placeholder="תקציב (₪)" class="mb-8 text-xl font-black">
             <button id="saveBtn" onclick="saveProject()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">שמור</button>
         </div>
@@ -132,39 +140,41 @@
             const filtered = projects.filter(p => isArchiveView ? p.isArchived === true : !p.isArchived);
             container.innerHTML = filtered.map(p => {
                 const spent = (p.tasks || []).reduce((s, t) => s + Number(t.price || 0), 0);
-                const perc = Math.min((spent / (p.budget || p.limit || 1)) * 100, 100);
+                const perc = Math.min((spent / (p.budget || 1)) * 100, 100);
                 return `<div class="glass-card p-8" onclick="openProjectDetail('${p.id}')">
                     <div class="flex justify-between items-start mb-4">
                         <h3 class="text-2xl font-black italic">${p.title || p.name}</h3>
                         <div class="flex gap-3 text-white/20" onclick="event.stopPropagation()">
+                            <button onclick="openNewProjectModal('${p.id}')"><i class="fas fa-edit"></i></button>
                             <button onclick="toggleArchiveStatus('${p.id}', ${!p.isArchived})"><i class="fas fa-box"></i></button>
                             <button onclick="deleteProject('${p.id}')"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
                     <div class="progress-bar mb-3"><div class="progress-fill" style="width: ${perc}%"></div></div>
-                    <div class="text-[10px] font-bold text-white/30 uppercase">₪${spent.toLocaleString()} / ₪${(p.budget || p.limit || 0).toLocaleString()}</div>
+                    <div class="text-[10px] font-bold text-white/30 uppercase">₪${spent.toLocaleString()} / ₪${(p.budget || 0).toLocaleString()}</div>
                 </div>`;
             }).join('');
         }
 
-        // תיקון פונקציית פתיחת הפירוט - מוודא שהכותרת נטענת נכון
         function openProjectDetail(id) { 
             currentProjectId = id; 
-            const modal = document.getElementById('projectDetailModal');
-            modal.classList.replace('hidden', 'flex');
+            document.getElementById('projectDetailModal').classList.replace('hidden', 'flex');
             renderProjectInfo(); 
         }
 
-        function closeProjectDetail() { 
-            document.getElementById('projectDetailModal').classList.replace('flex', 'hidden'); 
-            currentProjectId = null; 
-        }
+        function closeProjectDetail() { document.getElementById('projectDetailModal').classList.replace('flex', 'hidden'); currentProjectId = null; }
         
         function renderProjectInfo() {
-            const p = projects.find(x => x.id === currentProjectId); 
-            if(!p) return;
-            // הזרקת השם לכותרת המודאל למניעת undefined
+            const p = projects.find(x => x.id === currentProjectId); if(!p) return;
+            const spent = (p.tasks || []).reduce((s, t) => s + Number(t.price || 0), 0);
+            const perc = Math.min((spent / (p.budget || 1)) * 100, 100);
+
+            // עדכון הכותרת והנתונים במודאל
             document.getElementById('detailTitle').innerText = p.title || p.name;
+            document.getElementById('detailRemaining').innerText = `₪${(p.budget - spent).toLocaleString()}`;
+            document.getElementById('detailProgressFill').style.width = `${perc}%`;
+            document.getElementById('detailSpentText').innerText = `נוצל: ₪${spent.toLocaleString()} מתוך ₪${p.budget.toLocaleString()}`;
+            
             document.getElementById('tasksList').innerHTML = (p.tasks || []).map(t => `<div class="bg-white/5 p-4 rounded-2xl flex justify-between"><span>${t.name}</span><span class="font-bold">₪${t.price}</span></div>`).reverse().join('');
         }
 
@@ -178,19 +188,16 @@
             }
         }
 
-        function openNewProjectModal() { document.getElementById('newProjectModal').classList.replace('hidden', 'flex'); }
+        function openNewProjectModal(id = null) { editProjectId = id; document.getElementById('newProjectModal').classList.replace('hidden', 'flex'); }
         function closeNewProjectModal() { document.getElementById('newProjectModal').classList.replace('flex', 'hidden'); }
-
         async function saveProject() {
             const title = document.getElementById('pTitle').value, budget = Number(document.getElementById('pBudget').value);
             if(!title) return;
             await db.collection('family_plans').add({ title, budget, tasks: [], isArchived: false, createdAt: new Date() });
             closeNewProjectModal();
         }
-
         async function deleteProject(id) { if(confirm("למחוק?")) await db.collection('family_plans').doc(id).delete(); }
         async function toggleArchiveStatus(id, s) { await db.collection('family_plans').doc(id).update({ isArchived: s }); }
-        function toggleArchiveView() { isArchiveView = !isArchiveView; renderUI(); }
         function goHome() { isDashboard = false; document.getElementById('dashboardView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
         function toggleView() { isDashboard = !isDashboard; document.getElementById('projectsView').classList.toggle('hidden'); document.getElementById('dashboardView').classList.toggle('hidden'); }
     </script>
