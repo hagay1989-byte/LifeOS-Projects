@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V133 - Media Edition</title>
+    <title>LifeOS V136 - Final Camera Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -21,7 +21,7 @@
         .progress-bar { background: rgba(255,255,255,0.1); height: 8px; border-radius: 10px; overflow: hidden; }
         .progress-fill { height: 100%; transition: width 0.8s ease; background: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.3); }
         ::-webkit-scrollbar { display: none; }
-        .img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
+        .img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
         .img-thumb { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
     </style>
 </head>
@@ -32,7 +32,7 @@
             <h1 class="text-4xl font-black mb-10 italic">LifeOS</h1>
             <input type="email" id="emailInput" placeholder="אימייל" class="w-full mb-3 text-left ltr">
             <input type="password" id="passInput" placeholder="סיסמה" class="w-full mb-8 text-left ltr">
-            <button onclick="handleAuth()" class="w-full py-4 bg-white text-slate-900 font-black rounded-2xl">כניסה</button>
+            <button onclick="handleAuth('login')" class="w-full py-4 bg-white text-slate-900 font-black rounded-2xl">כניסה</button>
         </div>
     </div>
 
@@ -73,27 +73,24 @@
     <div id="projectDetailModal" class="hidden modal-overlay">
         <div class="glass-panel p-8 w-full max-w-md h-[85vh] flex flex-col relative text-right">
             <button onclick="closeProjectDetail()" class="absolute top-4 left-4 text-white/40 p-2"><i class="fas fa-times text-lg"></i></button>
-            <div class="absolute top-4 left-14 flex gap-2">
-                <button onclick="triggerUpload()" class="text-blue-400 p-2"><i class="fas fa-camera text-lg"></i></button>
-                <button onclick="exportToExcel()" class="text-green-400 p-2"><i class="fas fa-file-excel text-lg"></i></button>
-            </div>
-            <input type="file" id="imgUpload" class="hidden" accept="image/*" onchange="uploadImage(this)">
             
+            <button onclick="triggerUpload()" class="absolute top-4 left-14 text-blue-400 p-2"><i class="fas fa-camera text-lg"></i></button>
+            <input type="file" id="imgUpload" class="hidden" accept="image/*" onchange="uploadImage(this)">
+
             <h2 id="detailTitle" class="text-2xl font-black italic mb-4 text-center text-white"></h2>
             
-            <div class="mb-6 space-y-4">
+            <div id="detailStats" class="mb-6 space-y-4">
                 <div class="glass-card p-4 text-center">
-                    <div class="text-[10px] text-white/40 uppercase mb-1">יתרה נותרה</div>
+                    <div class="text-[10px] text-white/40 uppercase mb-1 text-center">יתרה נותרה</div>
                     <div id="detailRemaining" class="text-3xl font-black italic">₪0</div>
                 </div>
                 <div class="px-2">
                     <div class="progress-bar"><div id="detailProgressFill" class="progress-fill" style="width: 0%"></div></div>
-                    <div id="detailSpentText" class="text-[10px] text-white/30 mt-2 font-bold text-center"></div>
+                    <div id="detailSpentText" class="text-[10px] text-white/30 mt-2 uppercase font-bold text-center"></div>
                 </div>
             </div>
 
-            <div id="mediaGallery" class="img-grid mb-6"></div>
-
+            <div id="mediaGallery" class="img-grid"></div>
             <div id="tasksList" class="flex-1 overflow-y-auto space-y-3 mb-6"></div>
             
             <div class="space-y-3">
@@ -113,7 +110,7 @@
         const auth = firebase.auth(), db = firebase.firestore(), storage = firebase.storage();
         let projects = [], currentProjectId = null, userEmail = "", isDashboard = false, isGantt = false, isArchiveView = false, myChart = null;
 
-        async function handleAuth() {
+        async function handleAuth(type) {
             const email = document.getElementById('emailInput').value.trim(), pass = document.getElementById('passInput').value;
             try { await auth.signInWithEmailAndPassword(email, pass); } catch(e) { alert(e.message); }
         }
@@ -141,7 +138,7 @@
             const container = document.getElementById('projectsView');
             const filtered = projects.filter(p => isArchiveView ? p.isArchived === true : !p.isArchived);
             container.innerHTML = filtered.map(p => {
-                const b = Number(p.budget || 0), s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
+                const b = Number(p.budget || p.limit || 0), s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
                 const perc = b > 0 ? Math.min((s / b) * 100, 100) : 0;
                 return `<div class="glass-card p-8" onclick="openProjectDetail('${p.id}')">
                     <div class="flex justify-between items-start mb-4">
@@ -159,7 +156,7 @@
 
         function renderProjectInfo() {
             const p = projects.find(x => x.id === currentProjectId); if(!p) return;
-            const b = Number(p.budget || 0), s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
+            const b = Number(p.budget || p.limit || 0), s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
             document.getElementById('detailTitle').innerText = p.title || p.name || "ללא שם";
             document.getElementById('detailRemaining').innerText = `₪${(b - s).toLocaleString()}`;
             document.getElementById('detailProgressFill').style.width = `${b > 0 ? (s/b)*100 : 0}%`;
@@ -173,12 +170,10 @@
             if(!input.files[0]) return;
             const file = input.files[0], ref = storage.ref(`projects/${currentProjectId}/${Date.now()}_${file.name}`);
             try {
-                const snap = await ref.put(file);
-                const url = await snap.ref.getDownloadURL();
-                const p = projects.find(x => x.id === currentProjectId);
-                const images = [...(p.images || []), url];
+                const snap = await ref.put(file), url = await snap.ref.getDownloadURL();
+                const p = projects.find(x => x.id === currentProjectId), images = [...(p.images || []), url];
                 await db.collection('family_plans').doc(currentProjectId).update({ images });
-            } catch(e) { alert("שגיאה בהעלאה: וודא שחוקי ה-Storage פתוחים."); }
+            } catch(e) { alert("שגיאה בהעלאה."); }
         }
 
         async function addTask() {
@@ -191,21 +186,19 @@
             }
         }
 
-        function exportToExcel() {
-            const p = projects.find(x => x.id === currentProjectId); if(!p) return;
-            let csv = "הוצאה,מחיר,תאריך\n";
-            (p.tasks || []).forEach(t => { csv += `${t.name},${t.price},${t.date ? new Date(t.date.seconds * 1000).toLocaleDateString() : "-"}\n`; });
-            const encodedUri = encodeURI("data:text/csv;charset=utf-8,\uFEFF" + csv);
-            const link = document.createElement("a"); link.setAttribute("href", encodedUri); link.setAttribute("download", `${p.title || p.name}_reports.csv`); document.body.appendChild(link); link.click();
-        }
-
         function openProjectDetail(id) { currentProjectId = id; document.getElementById('projectDetailModal').classList.remove('hidden'); renderProjectInfo(); }
         function closeProjectDetail() { document.getElementById('projectDetailModal').classList.add('hidden'); currentProjectId = null; }
-        function goHome() { isDashboard = false; isGantt = false; document.getElementById('appScreen').querySelectorAll('main > div').forEach(d => d.classList.add('hidden')); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
+        function goHome() { isDashboard = false; isGantt = false; document.getElementById('dashboardView').classList.add('hidden'); document.getElementById('ganttView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
         function toggleView() { isDashboard = !isDashboard; isGantt = false; document.getElementById('projectsView').classList.toggle('hidden', isDashboard); document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard); if(isDashboard) renderDashboard(); }
         function toggleGantt() { isGantt = !isGantt; isDashboard = false; document.getElementById('projectsView').classList.toggle('hidden', isGantt); document.getElementById('ganttView').classList.toggle('hidden', !isGantt); if(isGantt) renderGantt(); }
-        function openNewProjectModal() { /* כנ"ל מפרוייקטים קודמים */ }
-        function openPartnerModal() { /* כנ"ל */ }
+        function openPartnerModal() { document.getElementById('partnerModal').classList.remove('hidden'); }
+        function closePartnerModal() { document.getElementById('partnerModal').classList.add('hidden'); }
+        async function savePartner() {
+            const partner = document.getElementById('partnerEmail').value.trim().toLowerCase();
+            if(!partner) return;
+            const batch = db.batch(); projects.forEach(p => { const collabs = p.collaborators || [userEmail]; if(!collabs.includes(partner)) collabs.push(partner); batch.update(db.collection('family_plans').doc(p.id), { collaborators: collabs }); });
+            await batch.commit(); alert(`שותף ${partner} נוסף!`); closePartnerModal();
+        }
     </script>
 </body>
 </html>
