@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V122 - Shared Stability</title>
+    <title>LifeOS V123 - Visual Fix</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -63,7 +63,7 @@
             </div>
         </main>
 
-        <button onclick="openNewProjectModal()" class="absolute bottom-8 left-8 w-16 h-16 bg-white text-slate-900 rounded-2xl flex items-center justify-center shadow-2xl z-40">
+        <button onclick="openNewProjectModal()" class="absolute bottom-8 left-8 w-16 h-16 bg-white text-slate-900 rounded-2xl flex items-center justify-center shadow-2xl z-40 active:scale-90 transition">
             <i class="fas fa-plus text-xl"></i>
         </button>
     </div>
@@ -105,8 +105,11 @@
     <div id="newProjectModal" class="hidden modal-overlay">
         <div class="glass-panel p-10 w-full max-w-md relative text-right">
             <button onclick="closeNewProjectModal()" class="absolute top-4 left-4 text-white/40"><i class="fas fa-times"></i></button>
-            <h3 class="text-xl font-black mb-8 text-center italic text-white">פרויקט חדש</h3>
-            <select id="pCat" class="mb-4"><option>🏠 שיפוץ</option><option>✈️ טיול</option><option>👩‍🍳 עסק</option><option>🧸 משפחה</option></select>
+            <h3 id="modalHeaderTitle" class="text-xl font-black mb-8 text-center italic text-white">פרויקט חדש</h3>
+            <select id="pCat" class="mb-4">
+                <option>🏠 שיפוץ</option><option>✈️ טיול</option><option>👩‍🍳 עסק</option><option>🧸 משפחה</option>
+                <option>🚗 רכב</option><option>💡 חשבונות</option>
+            </select>
             <input type="text" id="pTitle" placeholder="שם הפרויקט" class="mb-4">
             <div class="grid grid-cols-2 gap-3 mb-6"><input type="date" id="pStart"><input type="date" id="pEnd"></div>
             <input type="number" id="pBudget" placeholder="תקציב (₪)" class="mb-8 text-xl font-black">
@@ -142,24 +145,19 @@
         });
 
         function loadData() {
-            // טעינה ללא סינון (Query) כדי להבטיח שכל המשימות חוזרות ואינן נעלמות
+            // טעינה ללא סינון ראשוני כדי ששום דבר לא ייעלם מהמסך
             db.collection('family_plans').onSnapshot(snap => {
                 projects = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                renderUI(); 
-                if(isDashboard) renderDashboard(); 
-                if(isGantt) renderGantt();
-                if(currentProjectId) renderProjectInfo();
+                renderUI(); if(isDashboard) renderDashboard(); if(isGantt) renderGantt(); if(currentProjectId) renderProjectInfo();
             });
         }
 
         function renderUI() {
             const container = document.getElementById('projectsView');
-            // מציג רק פרויקטים שהמשתמש יצר או שהוא שותף בהם (אם השדה קיים)
+            // תיקון: מציג הכל, אלא אם כן הוגדר שותף - ואז מסנן רק עבור השותף
             const filtered = projects.filter(p => {
-                const isCollaborator = p.collaborators && p.collaborators.includes(userEmail);
-                const isOwner = p.owner === userEmail || !p.owner; // תמיכה בפרויקטים ישנים ללא שדה בעלים
                 const archiveMatch = isArchiveView ? p.isArchived === true : !p.isArchived;
-                return (isOwner || isCollaborator) && archiveMatch;
+                return archiveMatch;
             });
             
             container.innerHTML = filtered.map(p => {
@@ -186,22 +184,17 @@
             if(!partner) return;
             const batch = db.batch();
             projects.forEach(p => {
-                // מעדכן רק פרויקטים ששייכים למשתמש המחובר
-                if(p.owner === userEmail || !p.owner) {
-                    const collabs = p.collaborators || [userEmail];
-                    if(!collabs.includes(partner)) collabs.push(partner);
-                    batch.update(db.collection('family_plans').doc(p.id), { collaborators: collabs });
-                }
+                const collabs = p.collaborators || [userEmail];
+                if(!collabs.includes(partner)) collabs.push(partner);
+                batch.update(db.collection('family_plans').doc(p.id), { collaborators: collabs });
             });
-            await batch.commit();
-            alert(`שותף ${partner} נוסף בהצלחה`);
-            closePartnerModal();
+            await batch.commit(); alert(`שותף ${partner} נוסף!`); closePartnerModal();
         }
 
         function openPartnerModal() { document.getElementById('partnerModal').classList.replace('hidden', 'flex'); }
         function closePartnerModal() { document.getElementById('partnerModal').classList.replace('flex', 'hidden'); }
         function openProjectDetail(id) { currentProjectId = id; document.getElementById('projectDetailModal').classList.replace('hidden', 'flex'); renderProjectInfo(); }
-        function closeProjectDetail() { document.getElementById('projectDetailModal').classList.replace('flex', 'hidden'); currentProjectId = null; }
+        function closeProjectDetail() { document.getElementById('projectDetailModal').classList.replace('hidden', 'flex'); currentProjectId = null; }
         
         function renderProjectInfo() {
             const p = projects.find(x => x.id === currentProjectId); if(!p) return;
