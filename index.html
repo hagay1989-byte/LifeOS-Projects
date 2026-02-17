@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V130 - Final Math Fix</title>
+    <title>LifeOS V131 - Final Stability & Excel</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -25,7 +25,7 @@
 <body class="p-4 flex justify-center items-center">
 
     <div id="authScreen" class="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950">
-        <div class="glass-panel p-10 w-full max-w-sm text-center">
+        <div class="glass-panel p-10 w-full max-sm text-center">
             <h1 class="text-4xl font-black mb-10 italic">LifeOS</h1>
             <input type="email" id="emailInput" placeholder="אימייל" class="w-full mb-3 text-left ltr">
             <input type="password" id="passInput" placeholder="סיסמה" class="w-full mb-8 text-left ltr">
@@ -58,7 +58,7 @@
                 <div class="glass-card p-6 h-64 relative"><canvas id="mainChart"></canvas></div>
             </div>
             <div id="ganttView" class="hidden space-y-6 pb-24">
-                <h2 class="text-2xl font-black italic text-center mb-4">ציר זמן רבעוני</h2>
+                <h2 class="text-2xl font-black italic text-center mb-6">ציר זמן</h2>
                 <div id="ganttRows" class="space-y-4 bg-white/5 p-6 rounded-3xl"></div>
             </div>
         </main>
@@ -75,7 +75,7 @@
             <h2 id="detailTitle" class="text-2xl font-black italic mb-4 text-center text-white"></h2>
             <div id="detailStats" class="mb-6 space-y-4">
                 <div class="glass-card p-4 text-center">
-                    <div class="text-[10px] text-white/40 uppercase mb-1">יתרה נותרה</div>
+                    <div class="text-[10px] text-white/40 uppercase mb-1 text-center">יתרה נותרה</div>
                     <div id="detailRemaining" class="text-3xl font-black italic">₪0</div>
                 </div>
                 <div class="px-2">
@@ -88,6 +88,29 @@
                 <input type="text" id="taskName" placeholder="מה ההוצאה?"><input type="number" id="taskPrice" placeholder="₪">
                 <button onclick="addTask()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">הוסף</button>
             </div>
+        </div>
+    </div>
+
+    <div id="partnerModal" class="hidden modal-overlay">
+        <div class="glass-panel p-10 w-full max-w-sm text-center">
+            <h3 class="text-xl font-black mb-6">הוספת שותף</h3>
+            <input type="email" id="partnerEmail" placeholder="מייל השותף" class="w-full mb-8 text-left ltr" dir="ltr">
+            <div class="flex gap-3"><button onclick="savePartner()" class="flex-1 py-4 bg-white text-slate-900 font-black rounded-2xl">שתף</button><button onclick="closePartnerModal()" class="px-6 py-4 border border-white/10 rounded-2xl text-[10px]">ביטול</button></div>
+        </div>
+    </div>
+
+    <div id="newProjectModal" class="hidden modal-overlay">
+        <div class="glass-panel p-10 w-full max-w-md relative text-right">
+            <button onclick="closeNewProjectModal()" class="absolute top-4 left-4 text-white/40"><i class="fas fa-times"></i></button>
+            <h3 class="text-xl font-black mb-8 text-center italic text-white">פרויקט חדש</h3>
+            <select id="pCat" class="mb-4">
+                <option>🏠 שיפוץ</option><option>✈️ טיול</option><option>👩‍🍳 עסק</option><option>🧸 משפחה</option>
+                <option>🚗 רכב</option><option>💼 עבודה</option><option>🛒 קניות</option><option>💡 חשבונות</option>
+            </select>
+            <input type="text" id="pTitle" placeholder="שם הפרויקט" class="mb-4">
+            <div class="grid grid-cols-2 gap-3 mb-6"><input type="date" id="pStart"><input type="date" id="pEnd"></div>
+            <input type="number" id="pBudget" placeholder="תקציב (₪)" class="mb-8 text-xl font-black">
+            <button onclick="saveProject()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">שמור</button>
         </div>
     </div>
 
@@ -147,9 +170,8 @@
 
         function renderProjectInfo() {
             const p = projects.find(x => x.id === currentProjectId); if(!p) return;
-            // תיקון: מוודא שהתקציב נקרא נכון למניעת מינוס
-            const b = Number(p.budget || 0); 
-            const s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
+            // שחזור לוגיקת החישוב מ-V128
+            const b = Number(p.budget || 0), s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
             const rem = b - s;
             const perc = b > 0 ? Math.min((s/b)*100, 100) : 0;
 
@@ -188,14 +210,6 @@
             await db.collection('family_plans').add({ title: t, budget: b, category: c, startDate: st, endDate: en, collaborators: [userEmail], tasks: [], isArchived: false, createdAt: new Date() });
             closeNewProjectModal();
         }
-        function openPartnerModal() { document.getElementById('partnerModal').classList.remove('hidden'); }
-        function closePartnerModal() { document.getElementById('partnerModal').classList.add('hidden'); }
-        async function savePartner() {
-            const partner = document.getElementById('partnerEmail').value.trim().toLowerCase();
-            if(!partner) return;
-            const batch = db.batch(); projects.forEach(p => { const collabs = p.collaborators || [userEmail]; if(!collabs.includes(partner)) collabs.push(partner); batch.update(db.collection('family_plans').doc(p.id), { collaborators: collabs }); });
-            await batch.commit(); alert(`שותף ${partner} נוסף!`); closePartnerModal();
-        }
         function toggleGantt() { isGantt = !isGantt; isDashboard = false; document.getElementById('projectsView').classList.toggle('hidden', isGantt); document.getElementById('ganttView').classList.toggle('hidden', !isGantt); document.getElementById('dashboardView').classList.add('hidden'); if(isGantt) renderGantt(); }
         function renderGantt() {
             const container = document.getElementById('ganttRows');
@@ -218,6 +232,14 @@
         async function deleteProject(id) { if(confirm("למחוק?")) await db.collection('family_plans').doc(id).delete(); }
         async function toggleArchiveStatus(id, s) { await db.collection('family_plans').doc(id).update({ isArchived: s }); }
         function toggleArchiveView() { isArchiveView = !isArchiveView; renderUI(); }
+        function openPartnerModal() { document.getElementById('partnerModal').classList.remove('hidden'); }
+        function closePartnerModal() { document.getElementById('partnerModal').classList.add('hidden'); }
+        async function savePartner() {
+            const partner = document.getElementById('partnerEmail').value.trim().toLowerCase();
+            if(!partner) return;
+            const batch = db.batch(); projects.forEach(p => { const collabs = p.collaborators || [userEmail]; if(!collabs.includes(partner)) collabs.push(partner); batch.update(db.collection('family_plans').doc(p.id), { collaborators: collabs }); });
+            await batch.commit(); alert(`שותף ${partner} נוסף!`); closePartnerModal();
+        }
     </script>
 </body>
 </html>
