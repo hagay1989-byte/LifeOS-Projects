@@ -9,7 +9,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0f172a">
     
-    <title>LifeOS V179 - Percent Edition</title>
+    <title>LifeOS V180 - Master Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -24,10 +24,10 @@
         .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 32px; transition: all 0.3s ease; cursor: pointer; }
         .modal-overlay { position: fixed; inset: 0; display: flex; align-items: flex-start; justify-content: center; background: rgba(10, 15, 28, 0.98); backdrop-filter: blur(20px); z-index: 1000; padding: 20px; overflow-y: auto; }
         input, select { background: rgba(255, 255, 255, 0.9) !important; border-radius: 16px !important; color: #0f172a !important; padding: 12px !important; width: 100%; font-size: 16px !important; border: none !important; }
-        .progress-container { position: relative; width: 100%; margin-top: 20px; }
+        .progress-container { position: relative; width: 100%; margin-top: 15px; }
         .progress-bar { background: rgba(255,255,255,0.1); height: 8px; border-radius: 10px; overflow: hidden; }
         .progress-fill { height: 100%; transition: width 0.8s ease; background: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.3); }
-        .progress-perc { position: absolute; left: 0; top: -18px; font-size: 10px; font-weight: 900; opacity: 0.5; }
+        .progress-perc { position: absolute; left: 0; top: -16px; font-size: 10px; font-weight: 900; opacity: 0.5; }
         .img-container { position: relative; }
         .img-thumb { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; }
         .del-img-btn { position: absolute; top: 4px; left: 4px; background: rgba(239, 68, 68, 0.9); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 10px; }
@@ -89,8 +89,6 @@
             </div>
 
             <div class="glass-card p-6 text-center mb-6" id="balanceCard">
-                <div class="text-[10px] opacity-40 mb-1 uppercase tracking-widest">יתרה לתשלום</div>
-                <div id="detailRemaining" class="text-4xl font-black italic mb-3">₪0</div>
                 </div>
 
             <div id="mediaGallery" class="img-grid max-h-40 overflow-y-auto mb-4 border-b border-white/5 pb-4"></div>
@@ -142,21 +140,25 @@
 
         function renderProjectInfo() {
             const p = projects.find(x => x.id === currentProjectId); if(!p) return;
-            const b = Number(p.budget || p.limit || 0), s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
+            const b = Number(p.budget || p.limit || 0);
+            const s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
             const rem = b - s;
             const perc = b > 0 ? Math.round((s / b) * 100) : 0;
             
             document.getElementById('detailTitle').innerText = (p.category || '') + ' ' + (p.title || p.name);
-            document.getElementById('detailRemaining').innerText = `₪${rem.toLocaleString()}`;
             
             const card = document.getElementById('balanceCard');
-            card.querySelectorAll('.progress-container').forEach(el => el.remove());
-            card.insertAdjacentHTML('beforeend', `
+            card.innerHTML = `
+                <div class="flex justify-between items-center mb-1 px-2">
+                    <span class="text-[10px] opacity-40 uppercase tracking-widest">יתרה לתשלום</span>
+                    <span class="text-[10px] opacity-40 font-bold">תקציב: ₪${b.toLocaleString()}</span>
+                </div>
+                <div id="detailRemaining" class="text-4xl font-black italic mb-3">₪${rem.toLocaleString()}</div>
                 <div class="progress-container">
                     <div class="progress-perc">${perc}% נוצל</div>
                     <div class="progress-bar"><div class="progress-fill" style="width: ${Math.min(perc, 100)}%"></div></div>
                 </div>
-            `);
+            `;
 
             document.getElementById('mediaGallery').innerHTML = (p.images || []).map((u, i) => `<div class="img-container"><img src="${u}" class="img-thumb" onclick="window.open('${u}')"><div class="del-img-btn" onclick="event.stopPropagation(); deleteImage(${i})"><i class="fas fa-times"></i></div></div>`).reverse().join('');
             document.getElementById('tasksList').innerHTML = (p.tasks || []).map((t, i) => `<div class="bg-white/5 p-4 rounded-2xl flex justify-between"><span>${t.name}</span><div class="flex gap-4"><b>₪${t.price}</b><button onclick="deleteTask(${i})" class="text-red-400 opacity-30"><i class="fas fa-trash"></i></button></div></div>`).reverse().join('');
@@ -178,11 +180,11 @@
             }).join('');
         }
 
+        // שאר הפונקציות נשארות ללא שינוי
         function toggleProjectSettings() { document.getElementById('projectSettings').classList.toggle('hidden'); }
         async function deleteProjectPermanently() { if(confirm("למחוק לצמיתות?")) { await db.collection('family_plans').doc(currentProjectId).delete(); closeProjectDetail(); } }
         async function toggleArchiveStatus() { const p = projects.find(x => x.id === currentProjectId); await db.collection('family_plans').doc(currentProjectId).update({ isArchived: !p.isArchived }); closeProjectDetail(); }
         async function deleteImage(idx) { const p = projects.find(x => x.id === currentProjectId); const imgs = [...(p.images || [])]; imgs.splice(imgs.length - 1 - idx, 1); await db.collection('family_plans').doc(currentProjectId).update({ images: imgs }); }
-        
         function renderDashboard() {
             const a = projects.filter(p => !p.isArchived);
             const tp = a.reduce((s, p) => s + Number(p.budget || p.limit || 0), 0), ts = a.reduce((s, p) => s + (p.tasks || []).reduce((x, t) => x + Number(t.price), 0), 0);
@@ -190,7 +192,6 @@
             const ctx = document.getElementById('mainChart').getContext('2d'); if(myChart) myChart.destroy();
             myChart = new Chart(ctx, { type: 'bar', data: { labels: a.map(p => p.title || p.name), datasets: [{ label: 'תקציב', data: a.map(p => p.budget || p.limit || 0), backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10 }, { label: 'נוצל', data: a.map(p => (p.tasks || []).reduce((x, t) => x + Number(t.price), 0)), backgroundColor: 'white', borderRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: false } });
         }
-
         function renderGantt() {
             const container = document.getElementById('ganttRows');
             const active = projects.filter(p => !p.isArchived);
@@ -204,7 +205,6 @@
             }).join('');
             container.innerHTML = html;
         }
-
         function triggerUpload() { document.getElementById('imgUpload').click(); }
         async function compressAndUpload(input) {
             if(!input.files[0]) return;
@@ -222,7 +222,6 @@
                 };
             };
         }
-
         function goHome() { isDashboard = isGantt = false; document.querySelectorAll('main > div').forEach(d => d.classList.add('hidden')); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
         function toggleView() { isDashboard = !isDashboard; isGantt = false; document.getElementById('projectsView').classList.toggle('hidden', isDashboard); document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard); document.getElementById('ganttView').classList.add('hidden'); if(isDashboard) renderDashboard(); }
         function toggleGantt() { isGantt = !isGantt; isDashboard = false; document.getElementById('projectsView').classList.toggle('hidden', isGantt); document.getElementById('ganttView').classList.toggle('hidden', !isGantt); document.getElementById('dashboardView').classList.add('hidden'); if(isGantt) renderGantt(); }
