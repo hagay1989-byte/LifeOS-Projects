@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V139 - Mobile Optimized</title>
+    <title>LifeOS V140 - Registration Fix</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
@@ -15,16 +14,11 @@
     <style>
         body { font-family: 'Heebo', sans-serif; background: radial-gradient(circle at top right, #1e1b4b, #0f172a 80%); background-attachment: fixed; color: white; text-align: right; min-height: 100vh; margin: 0; overflow-x: hidden; }
         .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px; }
-        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; transition: all 0.3s ease; }
+        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; }
         .modal-overlay { position: fixed; inset: 0; display: flex; align-items: flex-start; justify-content: center; background: rgba(10, 15, 28, 0.98); backdrop-filter: blur(20px); z-index: 1000; overflow-y: auto; padding: 15px; }
-        input, select { background: rgba(255, 255, 255, 0.95) !important; border-radius: 12px !important; color: #0f172a !important; padding: 14px !important; font-size: 16px !important; }
-        .progress-bar { background: rgba(255,255,255,0.1); height: 6px; border-radius: 10px; overflow: hidden; }
-        .progress-fill { height: 100%; transition: width 0.8s ease; background: #fff; }
+        input { background: rgba(255, 255, 255, 0.95) !important; border-radius: 12px !important; color: #0f172a !important; padding: 14px !important; font-size: 16px !important; }
         .img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
         .img-thumb { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); }
-        ::-webkit-scrollbar { display: none; }
-        /* מניעת זום אוטומטי באייפון */
-        input:focus { font-size: 16px !important; }
     </style>
 </head>
 <body class="p-3">
@@ -34,7 +28,11 @@
             <h1 class="text-4xl font-black mb-10 italic tracking-tighter">LifeOS</h1>
             <input type="email" id="emailInput" placeholder="אימייל" class="w-full mb-3 text-left ltr">
             <input type="password" id="passInput" placeholder="סיסמה" class="w-full mb-8 text-left ltr">
-            <button onclick="handleAuth()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl shadow-xl">כניסה</button>
+            
+            <div class="flex flex-col gap-3">
+                <button onclick="handleAuth('login')" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl shadow-xl">כניסה</button>
+                <button onclick="handleAuth('signup')" class="w-full py-4 border border-white/20 text-white font-bold rounded-xl text-sm">יצירת משתמש חדש</button>
+            </div>
         </div>
     </div>
 
@@ -42,34 +40,13 @@
         <header class="py-4 flex justify-between items-center px-2">
             <div class="flex gap-2">
                 <button onclick="goHome()" class="w-10 h-10 glass-card flex items-center justify-center"><i class="fas fa-home text-sm"></i></button>
-                <button onclick="toggleGantt()" class="w-10 h-10 glass-card flex items-center justify-center"><i class="fas fa-calendar-alt text-sm"></i></button>
                 <button onclick="openPartnerModal()" class="w-10 h-10 glass-card flex items-center justify-center text-purple-400"><i class="fas fa-fingerprint text-sm"></i></button>
             </div>
-            <div class="flex gap-2">
-                <button onclick="toggleView()" class="px-4 py-2 glass-card text-[10px] font-black uppercase">דשבורד</button>
-                <button onclick="auth.signOut()" class="w-10 h-10 flex items-center justify-center text-white/20"><i class="fas fa-sign-out-alt text-sm"></i></button>
-            </div>
+            <button onclick="auth.signOut()" class="w-10 h-10 flex items-center justify-center text-white/20"><i class="fas fa-sign-out-alt text-sm"></i></button>
         </header>
 
         <main class="flex-1 overflow-y-auto pt-2 pb-24">
             <div id="projectsView" class="space-y-4"></div>
-            <div id="dashboardView" class="hidden space-y-4">
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="glass-panel p-5 text-center">
-                        <span class="text-[10px] opacity-50 uppercase block mb-1">תכנון</span>
-                        <div class="text-lg font-black" id="totalPlanned">₪0</div>
-                    </div>
-                    <div class="glass-panel p-5 text-center">
-                        <span class="text-[10px] opacity-50 uppercase block mb-1 text-purple-400">נוצל</span>
-                        <div class="text-lg font-black" id="totalSpent">₪0</div>
-                    </div>
-                </div>
-                <div class="glass-panel p-4 h-64"><canvas id="mainChart"></canvas></div>
-            </div>
-            <div id="ganttView" class="hidden glass-panel p-6 space-y-4">
-                <h2 class="font-black italic text-center mb-2 text-white/50 uppercase text-xs tracking-widest">ציר זמן רבעוני</h2>
-                <div id="ganttRows" class="space-y-4"></div>
-            </div>
         </main>
 
         <button onclick="openNewProjectModal()" class="fixed bottom-6 left-6 w-14 h-14 bg-white text-slate-900 rounded-full flex items-center justify-center shadow-2xl z-40">
@@ -87,42 +64,17 @@
             <input type="file" id="imgUpload" class="hidden" accept="image/*" onchange="uploadImage(this)">
             
             <div class="glass-card p-4 text-center mb-4">
-                <div class="text-[10px] text-white/40 uppercase mb-1">יתרה</div>
                 <div id="detailRemaining" class="text-3xl font-black italic">₪0</div>
-                <div class="progress-bar mt-3"><div id="detailProgressFill" class="progress-fill"></div></div>
             </div>
 
             <div id="mediaGallery" class="img-grid max-h-32 overflow-y-auto mb-4"></div>
-            <div id="tasksList" class="flex-1 overflow-y-auto space-y-2 max-h-48 mb-4 border-t border-white/5 pt-4"></div>
+            <div id="tasksList" class="flex-1 overflow-y-auto space-y-2 mb-4"></div>
             
             <div class="grid grid-cols-4 gap-2">
                 <input type="text" id="taskName" placeholder="מה?" class="col-span-2">
                 <input type="number" id="taskPrice" placeholder="₪" class="col-span-1">
                 <button onclick="addTask()" class="bg-white text-slate-900 rounded-xl font-black flex items-center justify-center"><i class="fas fa-check"></i></button>
             </div>
-        </div>
-    </div>
-
-    <div id="partnerModal" class="hidden modal-overlay">
-        <div class="glass-panel p-8 w-full max-w-xs mt-20 text-center">
-            <h3 class="font-black mb-6">הוספת שותף</h3>
-            <input type="email" id="partnerEmail" placeholder="מייל השותף" class="w-full mb-6 text-left ltr" dir="ltr">
-            <div class="flex gap-2">
-                <button onclick="savePartner()" class="flex-1 py-4 bg-white text-slate-900 font-black rounded-xl">שתף</button>
-                <button onclick="closePartnerModal()" class="flex-1 py-4 border border-white/10 rounded-xl">ביטול</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="newProjectModal" class="hidden modal-overlay">
-        <div class="glass-panel p-8 w-full max-w-sm mt-10">
-            <h3 class="text-center font-black italic mb-6">פרויקט חדש</h3>
-            <select id="pCat" class="w-full mb-3"><option>🏠 שיפוץ</option><option>✈️ טיול</option><option>👩‍🍳 עסק</option><option>🧸 משפחה</option></select>
-            <input type="text" id="pTitle" placeholder="שם הפרויקט" class="w-full mb-3">
-            <div class="grid grid-cols-2 gap-2 mb-3"><input type="date" id="pStart"><input type="date" id="pEnd"></div>
-            <input type="number" id="pBudget" placeholder="תקציב (₪)" class="w-full mb-6 font-black text-lg">
-            <button onclick="saveProject()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">שמור פרויקט</button>
-            <button onclick="closeNewProjectModal()" class="w-full mt-2 py-2 text-white/30 text-xs uppercase">ביטול</button>
         </div>
     </div>
 
@@ -134,11 +86,20 @@
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(), db = firebase.firestore(), storage = firebase.storage();
-        let projects = [], currentProjectId = null, userEmail = "", isDashboard = false, isGantt = false;
+        let projects = [], currentProjectId = null, userEmail = "";
 
-        async function handleAuth() {
+        // פונקציית כניסה והרשמה משולבת
+        async function handleAuth(type) {
             const email = document.getElementById('emailInput').value.trim(), pass = document.getElementById('passInput').value;
-            try { await auth.signInWithEmailAndPassword(email, pass); } catch(e) { alert(e.message); }
+            if(!email || !pass) return alert("מלא פרטים");
+            try {
+                if(type === 'login') {
+                    await auth.signInWithEmailAndPassword(email, pass);
+                } else {
+                    await auth.createUserWithEmailAndPassword(email, pass);
+                    alert("חשבון נוצר בהצלחה!");
+                }
+            } catch(e) { alert(e.message); }
         }
 
         auth.onAuthStateChanged(user => {
@@ -154,11 +115,9 @@
         });
 
         function loadData() {
-            db.collection('family_plans').onSnapshot(snap => {
+            db.collection('family_plans').where('collaborators', 'array-contains', userEmail).onSnapshot(snap => {
                 projects = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 renderUI(); 
-                if(isDashboard) renderDashboard(); 
-                if(isGantt) renderGantt(); 
                 if(currentProjectId) renderProjectInfo();
             });
         }
@@ -166,65 +125,23 @@
         function renderUI() {
             const container = document.getElementById('projectsView');
             container.innerHTML = projects.filter(p => !p.isArchived).map(p => {
-                const b = Number(p.budget || p.limit || 0), s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
-                const perc = b > 0 ? Math.min((s / b) * 100, 100) : 0;
+                const b = Number(p.budget || 0), s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
                 return `<div class="glass-card p-6" onclick="openProjectDetail('${p.id}')">
-                    <div class="flex justify-between items-center mb-3">
+                    <div class="flex justify-between items-center">
                         <h3 class="text-xl font-black italic">${p.title || p.name}</h3>
-                        <span class="text-[10px] font-bold opacity-30">₪${s.toLocaleString()}</span>
+                        <span class="text-xs font-bold opacity-30">₪${(b-s).toLocaleString()} נותר</span>
                     </div>
-                    <div class="progress-bar"><div class="progress-fill" style="width: ${perc}%"></div></div>
                 </div>`;
             }).join('');
         }
 
         function renderProjectInfo() {
             const p = projects.find(x => x.id === currentProjectId); if(!p) return;
-            const b = Number(p.budget || p.limit || 0), s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
+            const b = Number(p.budget || 0), s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
             document.getElementById('detailTitle').innerText = p.title || p.name;
             document.getElementById('detailRemaining').innerText = `₪${(b - s).toLocaleString()}`;
-            document.getElementById('detailProgressFill').style.width = `${b > 0 ? (s/b)*100 : 0}%`;
             document.getElementById('tasksList').innerHTML = (p.tasks || []).map(t => `<div class="bg-white/5 p-3 rounded-xl flex justify-between text-sm"><span>${t.name}</span><span class="font-bold">₪${t.price}</span></div>`).reverse().join('');
             document.getElementById('mediaGallery').innerHTML = (p.images || []).map(url => `<img src="${url}" class="img-thumb" onclick="window.open('${url}')">`).join('');
-        }
-
-        function toggleView() {
-            isDashboard = !isDashboard; isGantt = false;
-            document.getElementById('projectsView').classList.toggle('hidden', isDashboard);
-            document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard);
-            document.getElementById('ganttView').classList.add('hidden');
-            if(isDashboard) renderDashboard();
-        }
-
-        function toggleGantt() {
-            isGantt = !isGantt; isDashboard = false;
-            document.getElementById('projectsView').classList.toggle('hidden', isGantt);
-            document.getElementById('ganttView').classList.toggle('hidden', !isGantt);
-            document.getElementById('dashboardView').classList.add('hidden');
-            if(isGantt) renderGantt();
-        }
-
-        function renderGantt() {
-            const container = document.getElementById('ganttRows');
-            container.innerHTML = projects.filter(p => !p.isArchived).map(p => {
-                const st = new Date(p.startDate || Date.now()), en = new Date(p.endDate || (Date.now() + 2592000000));
-                const left = (st.getMonth() / 12) * 100, width = Math.max(((en.getMonth() - st.getMonth() + 1) / 12) * 100, 10);
-                return `<div class="flex items-center gap-3"><div class="w-16 text-[9px] font-bold opacity-40 truncate">${p.title || p.name}</div><div class="flex-1 h-1.5 bg-white/5 rounded-full relative"><div class="absolute h-full bg-white rounded-full" style="right:${left}%; width:${width}%"></div></div></div>`;
-            }).join('');
-        }
-
-        function openPartnerModal() { document.getElementById('partnerModal').classList.remove('hidden'); }
-        function closePartnerModal() { document.getElementById('partnerModal').classList.add('hidden'); }
-        async function savePartner() {
-            const partner = document.getElementById('partnerEmail').value.trim().toLowerCase();
-            if(!partner) return;
-            const batch = db.batch();
-            projects.forEach(p => {
-                const collabs = p.collaborators || [userEmail];
-                if(!collabs.includes(partner)) collabs.push(partner);
-                batch.update(db.collection('family_plans').doc(p.id), { collaborators: collabs });
-            });
-            await batch.commit(); alert("שותף נוסף!"); closePartnerModal();
         }
 
         function triggerUpload() { document.getElementById('imgUpload').click(); }
@@ -240,7 +157,7 @@
 
         function openProjectDetail(id) { currentProjectId = id; document.getElementById('projectDetailModal').classList.remove('hidden'); renderProjectInfo(); }
         function closeProjectDetail() { document.getElementById('projectDetailModal').classList.add('hidden'); currentProjectId = null; }
-        function goHome() { isDashboard = false; isGantt = false; document.querySelectorAll('main > div').forEach(d => d.classList.add('hidden')); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
+        function goHome() { document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
         async function addTask() {
             const n = document.getElementById('taskName').value, pr = Number(document.getElementById('taskPrice').value);
             if(n && pr) {
