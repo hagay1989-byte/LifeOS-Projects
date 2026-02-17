@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V141 - Stable + Camera + Auth</title>
+    <title>LifeOS V141.1 - Logo Home Fix</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -23,6 +23,9 @@
         .img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
         .img-thumb { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
         ::-webkit-scrollbar { display: none; }
+        /* הוספת אפקט לחיצה ללוגו */
+        .clickable-logo { cursor: pointer; transition: opacity 0.2s; }
+        .clickable-logo:active { opacity: 0.5; }
     </style>
 </head>
 <body class="p-4 flex justify-center items-start md:items-center">
@@ -42,10 +45,9 @@
     <div id="appScreen" class="hidden glass-panel w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden shadow-2xl relative">
         <header class="p-6 flex justify-between items-center border-b border-white/5">
             <div class="flex gap-3 items-center">
-                <button onclick="goHome()" class="p-3 bg-white/5 rounded-xl border border-white/10"><i class="fas fa-home"></i></button>
+                <h1 onclick="goHome()" class="text-xl font-black italic mr-2 clickable-logo">LifeOS</h1>
                 <button onclick="toggleGantt()" class="p-3 bg-white/5 rounded-xl border border-white/10 text-white"><i class="fas fa-calendar-alt"></i></button>
                 <button onclick="openPartnerModal()" class="p-3 bg-white/5 rounded-xl border border-white/10 text-purple-400"><i class="fas fa-fingerprint"></i></button>
-                <h1 class="text-xl font-black italic mr-2">LifeOS</h1>
             </div>
             <div class="flex gap-2">
                 <button onclick="toggleArchiveView()" id="archiveBtn" class="px-4 py-2 bg-white/5 rounded-xl text-[10px] font-bold border border-white/10">📦 ארכיון</button>
@@ -205,7 +207,7 @@
                 const snap = await ref.put(file), url = await snap.ref.getDownloadURL();
                 const p = projects.find(x => x.id === currentProjectId), images = [...(p.images || []), url];
                 await db.collection('family_plans').doc(currentProjectId).update({ images });
-            } catch(e) { alert("שגיאה בהעלאה: וודא שחוקי ה-Storage ב-Firebase פתוחים."); }
+            } catch(e) { alert("שגיאה בהעלאה"); }
         }
 
         async function addTask() {
