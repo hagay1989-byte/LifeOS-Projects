@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V137 - Full System Fix</title>
+    <title>LifeOS V138 - Complete Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -71,14 +71,23 @@
         </button>
     </div>
 
+    <div id="partnerModal" class="hidden modal-overlay">
+        <div class="glass-panel p-10 w-full max-w-sm text-center">
+            <h3 class="text-xl font-black mb-6">הוספת שותף</h3>
+            <input type="email" id="partnerEmail" placeholder="מייל השותף" class="w-full mb-8 text-left ltr" dir="ltr">
+            <div class="flex gap-3">
+                <button onclick="savePartner()" class="flex-1 py-4 bg-white text-slate-900 font-black rounded-2xl">שתף</button>
+                <button onclick="closePartnerModal()" class="px-6 py-4 border border-white/10 rounded-2xl text-[10px]">ביטול</button>
+            </div>
+        </div>
+    </div>
+
     <div id="projectDetailModal" class="hidden modal-overlay">
         <div class="glass-panel p-8 w-full max-w-md h-[85vh] flex flex-col relative text-right">
             <button onclick="closeProjectDetail()" class="absolute top-4 left-4 text-white/40 p-2"><i class="fas fa-times text-lg"></i></button>
             <button onclick="triggerUpload()" class="absolute top-4 left-14 text-blue-400 p-2"><i class="fas fa-camera text-lg"></i></button>
             <input type="file" id="imgUpload" class="hidden" accept="image/*" onchange="uploadImage(this)">
-            
             <h2 id="detailTitle" class="text-2xl font-black italic mb-4 text-center text-white"></h2>
-            
             <div class="mb-6 space-y-4">
                 <div class="glass-card p-4 text-center">
                     <div class="text-[10px] text-white/40 uppercase mb-1">יתרה נותרה</div>
@@ -89,14 +98,27 @@
                     <div id="detailSpentText" class="text-[10px] text-white/30 mt-2 font-bold text-center"></div>
                 </div>
             </div>
-
             <div id="mediaGallery" class="img-grid overflow-y-auto max-h-32 mb-4"></div>
             <div id="tasksList" class="flex-1 overflow-y-auto space-y-3 mb-6"></div>
-            
             <div class="space-y-3">
                 <input type="text" id="taskName" placeholder="מה ההוצאה?"><input type="number" id="taskPrice" placeholder="₪">
                 <button onclick="addTask()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">הוסף</button>
             </div>
+        </div>
+    </div>
+
+    <div id="newProjectModal" class="hidden modal-overlay">
+        <div class="glass-panel p-10 w-full max-w-md relative text-right">
+            <button onclick="closeNewProjectModal()" class="absolute top-4 left-4 text-white/40"><i class="fas fa-times"></i></button>
+            <h3 class="text-xl font-black mb-8 text-center italic text-white">פרויקט חדש</h3>
+            <select id="pCat" class="mb-4">
+                <option>🏠 שיפוץ</option><option>✈️ טיול</option><option>👩‍🍳 עסק</option><option>🧸 משפחה</option>
+                <option>🚗 רכב</option><option>💼 עבודה</option><option>🛒 קניות</option><option>💡 חשבונות</option>
+            </select>
+            <input type="text" id="pTitle" placeholder="שם הפרויקט" class="mb-4">
+            <div class="grid grid-cols-2 gap-3 mb-6"><input type="date" id="pStart"><input type="date" id="pEnd"></div>
+            <input type="number" id="pBudget" placeholder="תקציב (₪)" class="mb-8 text-xl font-black">
+            <button onclick="saveProject()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">שמור</button>
         </div>
     </div>
 
@@ -157,6 +179,21 @@
             }).join('');
         }
 
+        // פונקציות שותפים מתוקנות
+        function openPartnerModal() { document.getElementById('partnerModal').classList.remove('hidden'); }
+        function closePartnerModal() { document.getElementById('partnerModal').classList.add('hidden'); }
+        async function savePartner() {
+            const partner = document.getElementById('partnerEmail').value.trim().toLowerCase();
+            if(!partner) return;
+            const batch = db.batch();
+            projects.forEach(p => {
+                const collabs = p.collaborators || [userEmail];
+                if(!collabs.includes(partner)) collabs.push(partner);
+                batch.update(db.collection('family_plans').doc(p.id), { collaborators: collabs });
+            });
+            await batch.commit(); alert(`שותף ${partner} נוסף!`); closePartnerModal();
+        }
+
         function renderProjectInfo() {
             const p = projects.find(x => x.id === currentProjectId); if(!p) return;
             const b = Number(p.budget || p.limit || 0), s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
@@ -168,33 +205,16 @@
             document.getElementById('mediaGallery').innerHTML = (p.images || []).map(url => `<img src="${url}" class="img-thumb" onclick="window.open('${url}')">`).join('');
         }
 
-        function toggleView() {
-            isDashboard = !isDashboard; isGantt = false;
-            document.getElementById('projectsView').classList.toggle('hidden', isDashboard);
-            document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard);
-            document.getElementById('ganttView').classList.add('hidden');
-            if(isDashboard) renderDashboard();
-        }
-
-        function toggleGantt() {
-            isGantt = !isGantt; isDashboard = false;
-            document.getElementById('projectsView').classList.toggle('hidden', isGantt);
-            document.getElementById('ganttView').classList.toggle('hidden', !isGantt);
-            document.getElementById('dashboardView').classList.add('hidden');
-            if(isGantt) renderGantt();
-        }
-
+        function toggleView() { isDashboard = !isDashboard; isGantt = false; document.getElementById('projectsView').classList.toggle('hidden', isDashboard); document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard); document.getElementById('ganttView').classList.add('hidden'); if(isDashboard) renderDashboard(); }
+        function toggleGantt() { isGantt = !isGantt; isDashboard = false; document.getElementById('projectsView').classList.toggle('hidden', isGantt); document.getElementById('ganttView').classList.toggle('hidden', !isGantt); document.getElementById('dashboardView').classList.add('hidden'); if(isGantt) renderGantt(); }
         function renderDashboard() {
             const active = projects.filter(p => !p.isArchived);
-            const totalP = active.reduce((s, p) => s + Number(p.budget || p.limit || 0), 0);
-            const totalS = active.reduce((s, p) => s + (p.tasks || []).reduce((ts, t) => ts + Number(t.price), 0), 0);
+            const totalP = active.reduce((s, p) => s + Number(p.budget || p.limit || 0), 0), totalS = active.reduce((s, p) => s + (p.tasks || []).reduce((ts, t) => ts + Number(t.price), 0), 0);
             document.getElementById('totalPlanned').innerText = `₪${totalP.toLocaleString()}`;
             document.getElementById('totalSpent').innerText = `₪${totalS.toLocaleString()}`;
-            const ctx = document.getElementById('mainChart').getContext('2d');
-            if(myChart) myChart.destroy();
+            const ctx = document.getElementById('mainChart').getContext('2d'); if(myChart) myChart.destroy();
             myChart = new Chart(ctx, { type: 'bar', data: { labels: active.map(p => p.title || p.name || "ללא שם"), datasets: [{ label: 'תקציב', data: active.map(p => p.budget || p.limit || 0), backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10 }, { label: 'נוצל', data: active.map(p => (p.tasks || []).reduce((ts, t) => ts + Number(t.price), 0)), backgroundColor: 'white', borderRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.3)' } }, x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)' } } } } });
         }
-
         function renderGantt() {
             const container = document.getElementById('ganttRows');
             container.innerHTML = projects.filter(p => !p.isArchived).map(p => {
@@ -203,29 +223,18 @@
                 return `<div class="flex items-center gap-4"><div class="w-20 text-[9px] font-bold opacity-50 truncate">${p.title || p.name || "ללא שם"}</div><div class="flex-1 h-2 bg-white/5 rounded-full relative overflow-hidden"><div class="absolute h-full bg-white rounded-full" style="right:${left}%; width:${width}%"></div></div></div>`;
             }).join('');
         }
-
         function triggerUpload() { document.getElementById('imgUpload').click(); }
         async function uploadImage(input) {
             if(!input.files[0]) return;
             const file = input.files[0], ref = storage.ref(`projects/${currentProjectId}/${Date.now()}_${file.name}`);
-            try {
-                const snap = await ref.put(file), url = await snap.ref.getDownloadURL();
-                const p = projects.find(x => x.id === currentProjectId), images = [...(p.images || []), url];
-                await db.collection('family_plans').doc(currentProjectId).update({ images });
-            } catch(e) { alert("שגיאה בהעלאה."); }
+            try { const snap = await ref.put(file), url = await snap.ref.getDownloadURL(); const p = projects.find(x => x.id === currentProjectId), images = [...(p.images || []), url]; await db.collection('family_plans').doc(currentProjectId).update({ images }); } catch(e) { alert("שגיאה בהעלאה."); }
         }
-
         function openProjectDetail(id) { currentProjectId = id; document.getElementById('projectDetailModal').classList.remove('hidden'); renderProjectInfo(); }
         function closeProjectDetail() { document.getElementById('projectDetailModal').classList.add('hidden'); currentProjectId = null; }
         function goHome() { isDashboard = false; isGantt = false; document.getElementById('dashboardView').classList.add('hidden'); document.getElementById('ganttView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
         async function addTask() {
             const n = document.getElementById('taskName').value, pr = Number(document.getElementById('taskPrice').value);
-            if(n && pr) {
-                const p = projects.find(x => x.id === currentProjectId);
-                const tasks = [...(p.tasks || []), { name: n, price: pr, date: new Date() }];
-                await db.collection('family_plans').doc(currentProjectId).update({ tasks });
-                document.getElementById('taskName').value = ''; document.getElementById('taskPrice').value = '';
-            }
+            if(n && pr) { const p = projects.find(x => x.id === currentProjectId), tasks = [...(p.tasks || []), { name: n, price: pr, date: new Date() }]; await db.collection('family_plans').doc(currentProjectId).update({ tasks }); document.getElementById('taskName').value = ''; document.getElementById('taskPrice').value = ''; }
         }
         async function deleteProject(id) { if(confirm("למחוק?")) await db.collection('family_plans').doc(id).delete(); }
         async function toggleArchiveStatus(id, s) { await db.collection('family_plans').doc(id).update({ isArchived: s }); }
