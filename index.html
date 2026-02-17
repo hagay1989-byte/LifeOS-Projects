@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V119 - Budget Calculation Fix</title>
+    <title>LifeOS V120 - Dashboard & Stats Fix</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -37,7 +37,7 @@
         <header class="p-6 flex justify-between items-center border-b border-white/5">
             <div class="flex gap-3 items-center">
                 <button onclick="goHome()" class="p-3 bg-white/5 rounded-xl border border-white/10"><i class="fas fa-home"></i></button>
-                <button onclick="toggleGantt()" class="p-3 bg-white/5 rounded-xl border border-white/10 text-white"><i class="fas fa-calendar-alt"></i></button>
+                <button onclick="toggleGantt()" class="p-3 bg-white/5 rounded-xl border border-white/10"><i class="fas fa-calendar-alt text-white"></i></button>
                 <h1 class="text-xl font-black italic mr-2">LifeOS</h1>
             </div>
             <div class="flex gap-2">
@@ -49,12 +49,15 @@
 
         <main class="flex-1 overflow-y-auto p-6">
             <div id="projectsView" class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-24"></div>
+            
             <div id="dashboardView" class="hidden space-y-6 pb-24">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="glass-card p-6 text-center"><span>תכנון</span><div class="text-xl font-black" id="totalPlanned">₪0</div></div>
                     <div class="glass-card p-6 text-center"><span>נוצל</span><div class="text-xl font-black text-purple-400" id="totalSpent">₪0</div></div>
                 </div>
-                <div class="glass-card p-6 h-64"><canvas id="mainChart"></canvas></div>
+                <div class="glass-card p-6 h-64 relative">
+                    <canvas id="mainChart"></canvas>
+                </div>
             </div>
         </main>
 
@@ -66,9 +69,9 @@
     <div id="projectDetailModal" class="hidden modal-overlay">
         <div class="glass-panel p-8 w-full max-w-md h-[85vh] flex flex-col relative text-right">
             <button onclick="closeProjectDetail()" class="absolute top-4 left-4 text-white/40"><i class="fas fa-times"></i></button>
-            <h2 id="detailTitle" class="text-2xl font-black italic mb-4 text-center text-white"></h2>
+            <h2 id="detailTitle" class="text-2xl font-black italic mb-4 text-center"></h2>
             
-            <div id="detailStats" class="mb-6 space-y-4">
+            <div class="mb-6 space-y-4">
                 <div class="glass-card p-4 text-center">
                     <div class="text-[10px] text-white/40 uppercase mb-1">יתרה נותרה</div>
                     <div id="detailRemaining" class="text-3xl font-black italic">₪0</div>
@@ -83,8 +86,8 @@
             
             <div class="space-y-3">
                 <input type="text" id="taskName" placeholder="מה ההוצאה?">
-                <input type="number" id="taskPrice" placeholder="מחיר (₪)">
-                <button onclick="addTask()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">הוסף הוצאה</button>
+                <input type="number" id="taskPrice" placeholder="₪">
+                <button onclick="addTask()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">הוסף</button>
             </div>
         </div>
     </div>
@@ -92,9 +95,16 @@
     <div id="newProjectModal" class="hidden modal-overlay">
         <div class="glass-panel p-10 w-full max-w-md relative text-right">
             <button onclick="closeNewProjectModal()" class="absolute top-4 left-4 text-white/40"><i class="fas fa-times"></i></button>
-            <h3 class="text-xl font-black mb-8 text-center italic text-white">פרויקט חדש</h3>
-            <select id="pCat" class="mb-4"><option>🏠 שיפוץ</option><option>✈️ טיול</option><option>👩‍🍳 עסק</option><option>🧸 משפחה</option></select>
+            <h3 id="modalHeaderTitle" class="text-xl font-black mb-8 text-center italic">פרויקט חדש</h3>
+            <select id="pCat" class="mb-4">
+                <option>🏠 שיפוץ</option><option>✈️ טיול</option><option>👩‍🍳 עסק</option><option>🧸 משפחה</option>
+                <option>🚗 רכב</option><option>💡 חשבונות</option><option>💼 עבודה</option>
+            </select>
             <input type="text" id="pTitle" placeholder="שם הפרויקט" class="mb-4">
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <input type="date" id="pStart" placeholder="תאריך התחלה">
+                <input type="date" id="pEnd" placeholder="תאריך סיום">
+            </div>
             <input type="number" id="pBudget" placeholder="תקציב (₪)" class="mb-8 text-xl font-black">
             <button onclick="saveProject()" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl">שמור</button>
         </div>
@@ -108,7 +118,7 @@
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(), db = firebase.firestore();
-        let projects = [], currentProjectId = null, userEmail = "", isDashboard = false, isArchiveView = false;
+        let projects = [], currentProjectId = null, userEmail = "", isDashboard = false, isArchiveView = false, myChart = null;
 
         async function handleAuth(type) {
             const email = document.getElementById('emailInput').value.trim(), pass = document.getElementById('passInput').value;
@@ -130,7 +140,9 @@
         function loadData() {
             db.collection('family_plans').onSnapshot(snap => {
                 projects = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                renderUI(); if(currentProjectId) renderProjectInfo();
+                renderUI(); 
+                if(isDashboard) renderDashboard(); 
+                if(currentProjectId) renderProjectInfo();
             });
         }
 
@@ -155,12 +167,7 @@
             }).join('');
         }
 
-        function openProjectDetail(id) { 
-            currentProjectId = id; 
-            document.getElementById('projectDetailModal').classList.replace('hidden', 'flex');
-            renderProjectInfo(); 
-        }
-
+        function openProjectDetail(id) { currentProjectId = id; document.getElementById('projectDetailModal').classList.replace('hidden', 'flex'); renderProjectInfo(); }
         function closeProjectDetail() { document.getElementById('projectDetailModal').classList.replace('flex', 'hidden'); currentProjectId = null; }
         
         function renderProjectInfo() {
@@ -174,7 +181,6 @@
             document.getElementById('detailRemaining').innerText = `₪${remaining.toLocaleString()}`;
             document.getElementById('detailProgressFill').style.width = `${perc}%`;
             document.getElementById('detailSpentText').innerText = `נוצל: ₪${spent.toLocaleString()} מתוך ₪${budget.toLocaleString()}`;
-            
             document.getElementById('tasksList').innerHTML = (p.tasks || []).map(t => `<div class="bg-white/5 p-4 rounded-2xl flex justify-between"><span>${t.name}</span><span class="font-bold">₪${t.price}</span></div>`).reverse().join('');
         }
 
@@ -191,15 +197,39 @@
         function openNewProjectModal() { document.getElementById('newProjectModal').classList.replace('hidden', 'flex'); }
         function closeNewProjectModal() { document.getElementById('newProjectModal').classList.replace('flex', 'hidden'); }
         async function saveProject() {
-            const title = document.getElementById('pTitle').value, budget = Number(document.getElementById('pBudget').value);
+            const title = document.getElementById('pTitle').value, budget = Number(document.getElementById('pBudget').value), cat = document.getElementById('pCat').value, start = document.getElementById('pStart').value, end = document.getElementById('pEnd').value;
             if(!title) return;
-            await db.collection('family_plans').add({ title, budget, tasks: [], isArchived: false, createdAt: new Date() });
+            await db.collection('family_plans').add({ title, budget, category: cat, startDate: start, endDate: end, tasks: [], isArchived: false, createdAt: new Date() });
             closeNewProjectModal();
         }
+
+        function renderDashboard() {
+            const active = projects.filter(p => !p.isArchived);
+            const totalP = active.reduce((s, p) => s + Number(p.budget || p.limit || 0), 0);
+            const totalS = active.reduce((s, p) => s + (p.tasks || []).reduce((ts, t) => ts + Number(t.price), 0), 0);
+            document.getElementById('totalPlanned').innerText = `₪${totalP.toLocaleString()}`;
+            document.getElementById('totalSpent').innerText = `₪${totalS.toLocaleString()}`;
+            
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            if(myChart) myChart.destroy();
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: active.map(p => p.title || p.name),
+                    datasets: [
+                        { label: 'תקציב', data: active.map(p => p.budget || p.limit || 0), backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10 },
+                        { label: 'נוצל', data: active.map(p => (p.tasks || []).reduce((ts, t) => ts + Number(t.price), 0)), backgroundColor: 'white', borderRadius: 10 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.3)' } }, x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)' } } } }
+            });
+        }
+
+        function toggleView() { isDashboard = !isDashboard; document.getElementById('projectsView').classList.toggle('hidden', isDashboard); document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard); if(isDashboard) renderDashboard(); }
+        function goHome() { isDashboard = false; document.getElementById('dashboardView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
         async function deleteProject(id) { if(confirm("למחוק?")) await db.collection('family_plans').doc(id).delete(); }
         async function toggleArchiveStatus(id, s) { await db.collection('family_plans').doc(id).update({ isArchived: s }); }
-        function goHome() { isDashboard = false; document.getElementById('dashboardView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
-        function toggleView() { isDashboard = !isDashboard; document.getElementById('projectsView').classList.toggle('hidden'); document.getElementById('dashboardView').classList.toggle('hidden'); }
+        function toggleArchiveView() { isArchiveView = !isArchiveView; renderUI(); }
     </script>
 </body>
 </html>
