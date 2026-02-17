@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LifeOS V166 - Final Polish</title>
+    <title>LifeOS V167 - Final Fix</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -11,11 +11,10 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
     <style>
         body { font-family: 'Heebo', sans-serif; background: radial-gradient(circle at top right, #1e1b4b, #0f172a 80%); background-attachment: fixed; color: white; text-align: right; min-height: 100vh; margin: 0; }
         .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px; }
-        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 32px; transition: all 0.3s ease; cursor: pointer; }
+        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 32px; transition: all 0.3s ease; }
         .modal-overlay { position: fixed; inset: 0; display: flex; align-items: flex-start; justify-content: center; background: rgba(10, 15, 28, 0.98); backdrop-filter: blur(20px); z-index: 1000; padding: 20px; overflow-y: auto; }
         input, select { background: rgba(255, 255, 255, 0.9) !important; border-radius: 16px !important; color: #0f172a !important; padding: 12px !important; width: 100%; font-size: 16px !important; border: none !important; }
         .progress-bar { background: rgba(255,255,255,0.1); height: 8px; border-radius: 10px; overflow: hidden; }
@@ -47,7 +46,7 @@
             </div>
             <div class="flex gap-2">
                 <button onclick="toggleArchiveView()" id="archiveBtn" class="px-4 py-2 bg-white/5 rounded-xl text-[10px] font-bold border border-white/10">📦 ארכיון</button>
-                <button onclick="toggleView()" id="viewBtn" class="px-4 py-2 glass-card text-[9px] font-black uppercase">דשבורד</button>
+                <button onclick="toggleView()" id="viewBtn" class="px-4 py-2 glass-card text-[9px] font-black uppercase border border-white/10">דשבורד</button>
                 <button onclick="auth.signOut()" class="text-white/20 p-2"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
@@ -77,21 +76,26 @@
             <button onclick="closeProjectDetail()" class="absolute top-4 left-4 text-white/40 p-2"><i class="fas fa-times text-lg"></i></button>
             <div class="absolute top-4 left-14 flex gap-2">
                 <button onclick="toggleArchiveStatus()" class="text-orange-400 p-2"><i class="fas fa-box text-lg"></i></button>
-                <button onclick="triggerUpload()" class="text-blue-400 p-2"><i class="fas fa-camera text-lg"></i></button>
             </div>
-            <input type="file" id="imgUpload" class="hidden" accept="image/*" onchange="uploadImage(this)">
+            
             <h2 id="detailTitle" class="text-2xl font-black italic mb-4 text-center"></h2>
-            <div id="upStatus" class="hidden text-center text-[10px] text-blue-400 mb-2 animate-pulse">מעלה...</div>
+            
             <div class="glass-card p-6 text-center mb-6">
                 <div id="detailRemaining" class="text-4xl font-black italic mb-3">₪0</div>
                 <div class="progress-bar"><div id="detailProgressFill" class="progress-fill"></div></div>
             </div>
+
             <div id="mediaGallery" class="img-grid max-h-48 overflow-y-auto mb-4 border-b border-white/5 pb-4"></div>
-            <div id="tasksList" class="flex-1 overflow-y-auto space-y-3 mb-6 border-t border-white/5 pt-4"></div>
-            <div class="grid grid-cols-4 gap-2">
-                <input type="text" id="taskName" placeholder="מה?"><input type="number" id="taskPrice" placeholder="₪">
-                <button onclick="addTask()" class="bg-white text-black rounded-xl font-black"><i class="fas fa-plus"></i></button>
+            <div id="tasksList" class="flex-1 overflow-y-auto space-y-3 mb-6"></div>
+            
+            <div class="grid grid-cols-5 gap-2 items-center">
+                <button onclick="triggerUpload()" class="bg-blue-500/20 text-blue-400 p-4 rounded-xl text-xl"><i class="fas fa-camera"></i></button>
+                <input type="file" id="imgUpload" class="hidden" accept="image/*" onchange="uploadImage(this)">
+                <input type="text" id="taskName" placeholder="מה?" class="col-span-2">
+                <input type="number" id="taskPrice" placeholder="₪" class="col-span-1">
+                <button onclick="addTask()" class="bg-white text-black h-full rounded-xl font-black"><i class="fas fa-plus"></i></button>
             </div>
+            <div id="upStatus" class="hidden text-center text-[10px] text-blue-400 mt-2 animate-pulse">שומר תמונה...</div>
         </div>
     </div>
 
@@ -99,7 +103,7 @@
         <div class="glass-panel p-10 w-full max-w-sm mt-20 text-center relative">
             <button onclick="closePartnerModal()" class="absolute top-4 left-4 text-white/40"><i class="fas fa-times"></i></button>
             <h3 class="text-xl font-black mb-6">הוספת שותף</h3>
-            <input type="email" id="partnerEmail" placeholder="מייל השותף" class="mb-8 ltr text-left">
+            <input type="email" id="partnerEmail" placeholder="מייל" class="mb-8 ltr text-left">
             <button onclick="savePartner()" class="w-full py-4 bg-white text-black font-black rounded-2xl">שתף</button>
         </div>
     </div>
@@ -113,7 +117,7 @@
                 <input type="text" id="pTitleInp" placeholder="שם הפרויקט">
                 <div class="grid grid-cols-2 gap-3"><input type="date" id="pStartInp"><input type="date" id="pEndInp"></div>
                 <input type="number" id="pBudgetInp" placeholder="תקציב (₪)">
-                <button onclick="saveProject()" class="w-full py-4 bg-white text-black font-black rounded-2xl">שמור</button>
+                <button onclick="saveProject()" class="w-full py-4 bg-white text-black font-black rounded-2xl shadow-xl">שמור</button>
             </div>
         </div>
     </div>
@@ -121,10 +125,9 @@
     <script>
         const firebaseConfig = { apiKey: "AIzaSyB7U5xw_FMThsmM2hNMRnkdMYnD2cutH2s", authDomain: "project-manager-4702c.firebaseapp.com", projectId: "project-manager-4702c", storageBucket: "project-manager-4702c.firebasestorage.app", messagingSenderId: "941533299304", appId: "1:941533299304:web:92f8940e93a96b1f8b71dd" };
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth(), db = firebase.firestore(), storage = firebase.storage();
+        const auth = firebase.auth(), db = firebase.firestore();
         let projects = [], currentProjectId = null, userEmail = "", isDashboard = false, isGantt = false, isArchiveView = false, myChart = null;
 
-        // AUTH
         async function handleAuth(t) {
             const e = document.getElementById('emailInput').value.trim(), p = document.getElementById('passInput').value;
             try { if(t==='login') await auth.signInWithEmailAndPassword(e,p); else await auth.createUserWithEmailAndPassword(e,p); } catch(err) { alert(err.message); }
@@ -140,7 +143,7 @@
             });
         }
 
-        // CAMERA FIX (Base64)
+        // --- פונקציית המצלמה החדשה - שמירה ישירה ל-DATABASE ---
         function triggerUpload() { document.getElementById('imgUpload').click(); }
         async function uploadImage(input) {
             if(!input.files[0] || !currentProjectId) return;
@@ -151,30 +154,25 @@
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
-                const base64 = reader.result.split(',')[1];
-                const ref = storage.ref().child(`gallery/${currentProjectId}/${Date.now()}.jpg`);
                 try {
-                    const snap = await ref.putString(base64, 'base64', {contentType: 'image/jpeg'});
-                    const url = await snap.ref.getDownloadURL();
+                    const base64Image = reader.result; // התמונה כטקסט
                     const p = projects.find(x => x.id === currentProjectId);
-                    await db.collection('family_plans').doc(currentProjectId).update({ images: [...(p.images || []), url] });
+                    const currentImgs = p.images || [];
+                    
+                    // שמירה ישירה ל-Firestore עוקפת את כל בעיות ה-Storage
+                    await db.collection('family_plans').doc(currentProjectId).update({
+                        images: [...currentImgs, base64Image]
+                    });
+                    
                     status.classList.add('hidden');
-                } catch(e) { status.classList.add('hidden'); alert("שגיאה: " + e.message); }
+                    input.value = '';
+                } catch(e) { 
+                    status.classList.add('hidden'); 
+                    alert("שגיאה בשמירה: התמונה כנראה גדולה מדי. נסה תמונה קטנה יותר."); 
+                }
             };
         }
 
-        // RENDERING
-        function renderUI() {
-            const container = document.getElementById('projectsView');
-            const filtered = projects.filter(p => isArchiveView ? p.isArchived === true : !p.isArchived);
-            container.innerHTML = filtered.map(p => {
-                const b = Number(p.budget || 0), s = (p.tasks || []).reduce((a, t) => a + Number(t.price || 0), 0);
-                return `<div class="glass-card p-8 mb-2" onclick="openProjectDetail('${p.id}')">
-                    <div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-black italic">${p.category || ''} ${p.title || p.name}</h3><span class="text-xs opacity-40">₪${(b-s).toLocaleString()} נותר</span></div>
-                    <div class="progress-bar"><div class="progress-fill" style="width: ${b>0?Math.min((s/b)*100,100):0}%"></div></div>
-                </div>`;
-            }).join('');
-        }
         function renderProjectInfo() {
             const p = projects.find(x => x.id === currentProjectId); if(!p) return;
             const b = Number(p.budget || 0), s = (p.tasks || []).reduce((a, t) => a + Number(t.price || 0), 0);
@@ -182,10 +180,39 @@
             document.getElementById('detailRemaining').innerText = `₪${(b - s).toLocaleString()}`;
             document.getElementById('detailProgressFill').style.width = `${b>0?(s/b)*100:0}%`;
             document.getElementById('mediaGallery').innerHTML = (p.images || []).map(u => `<img src="${u}" class="img-thumb" onclick="window.open('${u}')">`).reverse().join('');
-            document.getElementById('tasksList').innerHTML = (p.tasks || []).map((t, i) => `<div class="bg-white/5 p-4 rounded-2xl flex justify-between"><span>${t.name}</span><div class="flex gap-4"><b>₪${t.price}</b><button onclick="deleteTask(${i})" class="text-red-400 opacity-30"><i class="fas fa-trash"></i></button></div></div>`).reverse().join('');
+            document.getElementById('tasksList').innerHTML = (p.tasks || []).map((t, i) => `<div class="bg-white/5 p-4 rounded-2xl flex justify-between"><span>${t.name}</span><div class="flex gap-4"><b>₪${t.price}</b><button onclick="deleteTask(${i})" class="text-red-400 opacity-30 p-1"><i class="fas fa-trash"></i></button></div></div>`).reverse().join('');
         }
 
-        // NAVIGATION & ACTIONS
+        function renderUI() {
+            const container = document.getElementById('projectsView');
+            const filtered = projects.filter(p => isArchiveView ? p.isArchived === true : !p.isArchived);
+            container.innerHTML = filtered.map(p => {
+                const b = Number(p.budget || 0), s = (p.tasks || []).reduce((a, t) => a + Number(t.price || 0), 0);
+                return `<div class="glass-card p-8 mb-2" onclick="openProjectDetail('${p.id}')">
+                    <div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-black italic text-white">${p.category || ''} ${p.title || p.name}</h3><span class="text-xs opacity-40">₪${(b-s).toLocaleString()} נותר</span></div>
+                    <div class="progress-bar"><div class="progress-fill" style="width: ${b>0?Math.min((s/b)*100,100):0}%"></div></div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderDashboard() {
+            const a = projects.filter(p => !p.isArchived);
+            const tp = a.reduce((s, p) => s + Number(p.budget || 0), 0), ts = a.reduce((s, p) => s + (p.tasks || []).reduce((x, t) => x + Number(t.price), 0), 0);
+            document.getElementById('totalPlanned').innerText = `₪${tp.toLocaleString()}`;
+            document.getElementById('totalSpent').innerText = `₪${ts.toLocaleString()}`;
+            const ctx = document.getElementById('mainChart').getContext('2d'); if(myChart) myChart.destroy();
+            myChart = new Chart(ctx, { type: 'bar', data: { labels: a.map(p => p.title), datasets: [{ label: 'תקציב', data: a.map(p => p.budget), backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10 }, { label: 'נוצל', data: a.map(p => (p.tasks || []).reduce((x, t) => x + Number(t.price), 0)), backgroundColor: 'white', borderRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: false } });
+        }
+
+        function renderGantt() {
+            const container = document.getElementById('ganttRows');
+            container.innerHTML = projects.filter(p => !p.isArchived).map(p => {
+                const st = new Date(p.startDate || Date.now()), en = new Date(p.endDate || (Date.now() + 2592000000));
+                const left = (st.getMonth() / 6) * 100, width = Math.max(((en.getMonth() - st.getMonth() + 1) / 6) * 100, 5);
+                return `<div class="flex items-center gap-4"><div class="w-24 text-[9px] font-bold opacity-50 truncate">${p.title}</div><div class="flex-1 h-2 bg-white/5 rounded-full relative overflow-hidden"><div class="absolute h-full bg-white rounded-full" style="right:${left}%; width:${width}%"></div></div></div>`;
+            }).join('');
+        }
+
         function goHome() { isDashboard = false; isGantt = false; document.querySelectorAll('main > div').forEach(d => d.classList.add('hidden')); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
         function toggleView() { isDashboard = !isDashboard; isGantt = false; document.getElementById('projectsView').classList.toggle('hidden', isDashboard); document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard); document.getElementById('ganttView').classList.add('hidden'); if(isDashboard) renderDashboard(); }
         function toggleGantt() { isGantt = !isGantt; isDashboard = false; document.getElementById('projectsView').classList.toggle('hidden', isGantt); document.getElementById('ganttView').classList.toggle('hidden', !isGantt); document.getElementById('dashboardView').classList.add('hidden'); if(isGantt) renderGantt(); }
@@ -199,20 +226,6 @@
         async function deleteTask(i) { const p = projects.find(x => x.id === currentProjectId); const u = [...p.tasks]; u.splice(p.tasks.length - 1 - i, 1); await db.collection('family_plans').doc(currentProjectId).update({ tasks: u }); }
         async function saveProject() { const c = document.getElementById('pCatInp').value, t = document.getElementById('pTitleInp').value, b = Number(document.getElementById('pBudgetInp').value); if(t) { await db.collection('family_plans').add({ category: c, title: t, budget: b, collaborators: [userEmail], tasks: [], images: [], isArchived: false, createdAt: new Date() }); closeNewProjectModal(); } }
         async function savePartner() { const p = document.getElementById('partnerEmail').value.trim().toLowerCase(); if(p) { const b = db.batch(); projects.forEach(pr => { const c = pr.collaborators || [userEmail]; if(!c.includes(p)) c.push(p); b.update(db.collection('family_plans').doc(pr.id), { collaborators: c }); }); await b.commit(); alert("נוסף!"); closePartnerModal(); } }
-        function renderDashboard() {
-            const a = projects.filter(p => !p.isArchived); const tp = a.reduce((s, p) => s + Number(p.budget || 0), 0), ts = a.reduce((s, p) => s + (p.tasks || []).reduce((x, t) => x + Number(t.price), 0), 0);
-            document.getElementById('totalPlanned').innerText = `₪${tp.toLocaleString()}`; document.getElementById('totalSpent').innerText = `₪${ts.toLocaleString()}`;
-            const ctx = document.getElementById('mainChart').getContext('2d'); if(myChart) myChart.destroy();
-            myChart = new Chart(ctx, { type: 'bar', data: { labels: a.map(p => p.title), datasets: [{ label: 'תקציב', data: a.map(p => p.budget), backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10 }, { label: 'נוצל', data: a.map(p => (p.tasks || []).reduce((x, t) => x + Number(t.price), 0)), backgroundColor: 'white', borderRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: false } });
-        }
-        function renderGantt() {
-            const container = document.getElementById('ganttRows');
-            container.innerHTML = projects.filter(p => !p.isArchived).map(p => {
-                const st = new Date(p.startDate || Date.now()), en = new Date(p.endDate || (Date.now() + 2592000000));
-                const left = (st.getMonth() / 6) * 100, width = Math.max(((en.getMonth() - st.getMonth() + 1) / 6) * 100, 5);
-                return `<div class="flex items-center gap-4"><div class="w-24 text-[9px] font-bold opacity-50 truncate">${p.title}</div><div class="flex-1 h-2 bg-white/5 rounded-full relative overflow-hidden"><div class="absolute h-full bg-white rounded-full" style="right:${left}%; width:${width}%"></div></div></div>`;
-            }).join('');
-        }
         function toggleArchiveView() { isArchiveView = !isArchiveView; renderUI(); }
         async function toggleArchiveStatus() { const p = projects.find(x => x.id === currentProjectId); await db.collection('family_plans').doc(currentProjectId).update({ isArchived: !p.isArchived }); closeProjectDetail(); }
     </script>
