@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LifeOS V182 - AI Working</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="LifeOS">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0f172a">
+    <title>LifeOS V182 - Mobile Ready</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -11,22 +16,25 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    
     <style>
         body { font-family: 'Heebo', sans-serif; background: radial-gradient(circle at top right, #1e1b4b, #0f172a 80%); background-attachment: fixed; color: white; text-align: right; min-height: 100vh; margin: 0; padding-top: env(safe-area-inset-top); }
         .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px; }
         .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 32px; transition: all 0.3s ease; cursor: pointer; }
         .modal-overlay { position: fixed; inset: 0; display: flex; align-items: flex-start; justify-content: center; background: rgba(10, 15, 28, 0.98); backdrop-filter: blur(20px); z-index: 1000; padding: 20px; overflow-y: auto; }
         input, select { background: rgba(255, 255, 255, 0.9) !important; border-radius: 16px !important; color: #0f172a !important; padding: 12px !important; width: 100%; font-size: 16px !important; border: none !important; }
-        .ai-plan-board { background: rgba(99, 102, 241, 0.1); border: 1px dashed #6366f1; border-radius: 24px; padding: 15px; margin-top: 10px; display: none; }
-        .loading-dots:after { content: ' .'; animation: dots 1s infinite; }
-        @keyframes dots { 0%, 20% { content: ' .'; } 40% { content: ' ..'; } 60% { content: ' ...'; } 80%, 100% { content: ''; } }
+        .progress-container { position: relative; width: 100%; margin-top: 15px; }
         .progress-bar { background: rgba(255,255,255,0.1); height: 8px; border-radius: 10px; overflow: hidden; }
-        .progress-fill { height: 100%; transition: width 0.8s ease; background: #fff; }
+        .progress-fill { height: 100%; transition: width 0.8s ease; background: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.3); }
+        .progress-perc { position: absolute; left: 0; top: -16px; font-size: 10px; font-weight: 900; opacity: 0.5; }
+        .img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .img-container { position: relative; }
+        .img-thumb { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; }
+        .del-img-btn { position: absolute; top: 4px; left: 4px; background: rgba(239, 68, 68, 0.9); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+        .nav-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 16px; color: white; }
+        ::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="p-4 flex justify-center items-start">
-
     <div id="authScreen" class="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950 p-6 text-center">
         <div class="glass-panel p-10 w-full max-w-sm">
             <h1 class="text-4xl font-black mb-10 italic">LifeOS</h1>
@@ -41,13 +49,15 @@
         <header class="p-6 flex justify-between items-center border-b border-white/5">
             <div class="flex gap-3 items-center">
                 <h1 onclick="goHome()" class="text-2xl font-black italic cursor-pointer">LifeOS</h1>
+                <button onclick="toggleGantt()" class="nav-btn"><i class="fas fa-calendar-alt"></i></button>
+                <button onclick="openPartnerModal()" class="nav-btn text-purple-400"><i class="fas fa-fingerprint"></i></button>
             </div>
             <div class="flex gap-2">
+                <button onclick="toggleArchiveView()" id="archiveBtn" class="px-4 py-2 bg-white/5 rounded-xl text-[10px] font-bold border border-white/10">📦 ארכיון</button>
                 <button onclick="toggleView()" id="viewBtn" class="px-4 py-2 glass-card text-[9px] font-black uppercase">דשבורד</button>
                 <button onclick="auth.signOut()" class="text-white/20 p-2"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
-
         <main class="flex-1 overflow-y-auto p-6">
             <div id="projectsView" class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-24"></div>
             <div id="dashboardView" class="hidden space-y-6 pb-24 text-center">
@@ -57,149 +67,212 @@
                 </div>
                 <div class="glass-card p-6 h-64 relative"><canvas id="mainChart"></canvas></div>
             </div>
+            <div id="ganttView" class="hidden space-y-6 pb-24"><div id="ganttRows" class="space-y-4 bg-white/5 p-6 rounded-3xl"></div></div>
         </main>
-
         <button onclick="openNewProjectModal()" class="absolute bottom-8 left-8 w-16 h-16 bg-white text-slate-900 rounded-2xl flex items-center justify-center shadow-2xl z-40"><i class="fas fa-plus text-xl"></i></button>
-    </div>
-
-    <div id="newProjectModal" class="hidden modal-overlay">
-        <div class="glass-panel p-8 w-full max-w-md mt-10 relative">
-            <button onclick="closeNewProjectModal()" class="absolute top-4 left-4 text-white/40 p-2"><i class="fas fa-times"></i></button>
-            <h3 class="text-xl font-black mb-6 text-center italic">פרויקט חדש ב-AI</h3>
-            
-            <div class="space-y-4">
-                <select id="pCatInp"><option>🏠 שיפוץ</option><option>✈️ חופשה</option><option>👩‍🍳 עסק</option><option>🧸 משפחה</option><option>⚙️ כללי</option></select>
-                <input type="text" id="pTitleInp" placeholder="מה התוכנית?">
-                
-                <button id="aiBtn" onclick="runGeminiPlanner()" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black rounded-2xl shadow-lg">
-                    <span id="aiBtnText">✨ תכנן לי ב-AI</span>
-                </button>
-
-                <div id="aiBoard" class="ai-plan-board">
-                    <div id="aiTasksPreview" class="max-h-40 overflow-y-auto space-y-2 mb-4 text-sm"></div>
-                    <div class="flex justify-between font-black text-indigo-400 border-t border-white/10 pt-2">
-                        <span>סה"כ משוער:</span>
-                        <span id="aiTotalBudget">₪0</span>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <input type="date" id="pStartInp">
-                    <input type="date" id="pEndInp">
-                </div>
-                
-                <input type="number" id="pBudgetInp" placeholder="תקציב (₪)">
-                <button onclick="saveProject()" class="w-full py-4 bg-white text-black font-black rounded-2xl">שמור פרויקט</button>
-            </div>
-        </div>
     </div>
 
     <div id="projectDetailModal" class="hidden modal-overlay">
         <div class="glass-panel p-8 w-full max-w-md mt-4 flex flex-col relative text-right">
             <button onclick="closeProjectDetail()" class="absolute top-4 left-4 text-white/40 p-2"><i class="fas fa-times text-lg"></i></button>
+            <button onclick="toggleProjectSettings()" class="absolute top-4 left-14 text-white/40 p-2"><i class="fas fa-cog text-lg"></i></button>
             <h2 id="detailTitle" class="text-2xl font-black italic mb-4 text-center"></h2>
-            <div id="balanceCard" class="glass-card p-6 text-center mb-6"></div>
+            <div id="projectSettings" class="hidden bg-white/10 p-4 rounded-3xl mb-4 space-y-2 text-center">
+                <button onclick="toggleArchiveStatus()" class="w-full py-3 bg-orange-500/20 text-orange-400 rounded-xl font-bold text-sm">📦 העברה לארכיון</button>
+                <button onclick="deleteProjectPermanently()" class="w-full py-3 bg-red-500/20 text-red-500 rounded-xl font-bold text-sm">🗑️ מחיקה לצמיתות</button>
+            </div>
+            <div class="glass-card p-6 text-center mb-6" id="balanceCard"></div>
+            <div id="mediaGallery" class="img-grid max-h-40 overflow-y-auto mb-4 border-b border-white/5 pb-4"></div>
             <div id="tasksList" class="flex-1 overflow-y-auto space-y-3 mb-6"></div>
+            <div class="grid grid-cols-5 gap-2 items-center bg-white/5 p-2 rounded-2xl">
+                <button onclick="triggerUpload()" class="bg-blue-500/20 text-blue-400 p-4 rounded-xl text-xl"><i class="fas fa-camera"></i></button>
+                <input type="file" id="imgUpload" class="hidden" accept="image/*" onchange="compressAndUpload(this)">
+                <input type="text" id="taskName" placeholder="מה?" class="col-span-2">
+                <input type="number" id="taskPrice" placeholder="₪">
+                <button onclick="addTask()" class="bg-white text-black h-full rounded-xl font-black"><i class="fas fa-plus"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="newProjectModal" class="hidden modal-overlay">
+        <div class="glass-panel p-10 w-full max-w-md mt-10 relative">
+            <button onclick="closeNewProjectModal()" class="absolute top-4 left-4 text-white/40 p-2"><i class="fas fa-times"></i></button>
+            <h3 class="text-xl font-black mb-8 text-center italic">פרויקט חדש</h3>
+            <div class="space-y-4">
+                <select id="pCatInp"><option>🏠 שיפוץ</option><option>✈️ טיול</option><option>👩‍🍳 עסק</option><option>🧸 משפחה</option><option>⚙️ כללי</option></select>
+                <input type="text" id="pTitleInp" placeholder="שם הפרויקט">
+                <div class="space-y-1 text-right"><label class="text-[10px] opacity-40 pr-2">תאריך התחלה:</label><input type="date" id="pStartInp"></div>
+                <div class="space-y-1 text-right"><label class="text-[10px] opacity-40 pr-2">תאריך סיום:</label><input type="date" id="pEndInp"></div>
+                <input type="number" id="pBudgetInp" placeholder="תקציב (₪)">
+                <button onclick="saveProject()" class="w-full py-4 bg-white text-black font-black rounded-2xl shadow-xl">שמור</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="partnerModal" class="hidden modal-overlay">
+        <div class="glass-panel p-10 w-full max-w-sm mt-20 text-center relative">
+            <button onclick="closePartnerModal()" class="absolute top-4 left-4 text-white/40"><i class="fas fa-times"></i></button>
+            <h3 class="text-xl font-black mb-6">הוספת שותף</h3>
+            <input type="email" id="partnerEmail" placeholder="מייל השותף" class="mb-8 ltr text-left">
+            <button onclick="savePartner()" class="w-full py-4 bg-white text-black font-black rounded-2xl">שתף</button>
         </div>
     </div>
 
     <script>
-        const GEMINI_API_KEY = 'AIzaSyCpqr4ma3JnRn_cuGtjNIdTYDfajyb93Xo';
         const firebaseConfig = { apiKey: "AIzaSyB7U5xw_FMThsmM2hNMRnkdMYnD2cutH2s", authDomain: "project-manager-4702c.firebaseapp.com", projectId: "project-manager-4702c", storageBucket: "project-manager-4702c.firebasestorage.app", messagingSenderId: "941533299304", appId: "1:941533299304:web:92f8940e93a96b1f8b71dd" };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(), db = firebase.firestore();
-        let projects = [], currentProjectId = null, userEmail = "", currentAiTasks = [];
+        let projects = [], currentProjectId = null, userEmail = "", isDashboard = false, isGantt = false, isArchiveView = false, myChart = null;
 
-        // --- Auth ---
-        auth.onAuthStateChanged(u => { if(u) { userEmail = u.email.toLowerCase(); document.getElementById('authScreen').classList.add('hidden'); document.getElementById('appScreen').classList.remove('hidden'); loadData(); } });
-        async function handleAuth(t) { const e = document.getElementById('emailInput').value, p = document.getElementById('passInput').value; try { t==='login' ? await auth.signInWithEmailAndPassword(e,p) : await auth.createUserWithEmailAndPassword(e,p); } catch(err) { alert(err.message); } }
-
-        // --- ה-AI שעובד (מועתק מהקוד שלך) ---
-        async function runGeminiPlanner() {
-            const title = document.getElementById('pTitleInp').value;
-            if(!title) return alert("רשום קודם שם לפרויקט");
-            const btnText = document.getElementById('aiBtnText');
-            btnText.className = "loading-dots";
-            btnText.innerText = "ה-AI בונה תוכנית";
-
-            try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: `Generate a detailed list of tasks/items and their estimated prices in ILS for a project named "${title}" in Hebrew. Return ONLY a valid JSON array: [{"name": "דוגמה", "price": 100}]. No markdown.` }] }]
-                    })
-                });
-                const data = await response.json();
-                let rawText = data.candidates[0].content.parts[0].text;
-                const cleanedJson = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
-                currentAiTasks = JSON.parse(cleanedJson);
-                
-                // תצוגה
-                const board = document.getElementById('aiBoard'), list = document.getElementById('aiTasksPreview'), 
-                      totalDisplay = document.getElementById('aiTotalBudget'), manualInp = document.getElementById('pBudgetInp');
-                board.style.display = 'block';
-                let total = 0;
-                list.innerHTML = currentAiTasks.map(t => {
-                    total += Number(t.price);
-                    return `<div class="flex justify-between bg-white/5 p-2 rounded-lg mb-1"><span>${t.name}</span><b>₪${t.price}</b></div>`;
-                }).join('');
-                totalDisplay.innerText = `₪${total.toLocaleString()}`;
-                manualInp.value = total;
-
-            } catch (e) {
-                console.error(e);
-                alert("שגיאה ב-AI");
-            } finally {
-                btnText.className = "";
-                btnText.innerText = "✨ תכנן לי ב-AI";
-            }
+        async function handleAuth(t) {
+            const e = document.getElementById('emailInput').value.trim(), p = document.getElementById('passInput').value;
+            try { if(t==='login') await auth.signInWithEmailAndPassword(e,p); else await auth.createUserWithEmailAndPassword(e,p); } catch(err) { alert(err.message); }
         }
 
-        // --- שמירה וטעינה ---
-        async function saveProject() {
-            const t = document.getElementById('pTitleInp').value, b = Number(document.getElementById('pBudgetInp').value);
-            if(t && b) {
-                await db.collection('family_plans').add({
-                    category: document.getElementById('pCatInp').value, title: t, budget: b,
-                    startDate: document.getElementById('pStartInp').value, endDate: document.getElementById('pEndInp').value,
-                    collaborators: [userEmail], tasks: currentAiTasks, isArchived: false, createdAt: new Date()
-                });
-                closeNewProjectModal();
+        auth.onAuthStateChanged(u => {
+            if(u) {
+                userEmail = u.email.toLowerCase();
+                document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('appScreen').classList.remove('hidden');
+                loadData();
+            } else {
+                document.getElementById('authScreen').classList.remove('hidden');
+                document.getElementById('appScreen').classList.add('hidden');
             }
-        }
+        });
 
         function loadData() {
             db.collection('family_plans').where('collaborators', 'array-contains', userEmail).onSnapshot(s => {
                 projects = s.docs.map(d => ({id: d.id, ...d.data()}));
                 renderUI();
+                if(isDashboard) renderDashboard();
+                if(isGantt) renderGantt();
+                if(currentProjectId) renderProjectInfo();
             });
+        }
+
+        function renderProjectInfo() {
+            const p = projects.find(x => x.id === currentProjectId);
+            if(!p) return;
+            const b = Number(p.budget || 0), s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
+            const rem = b - s, perc = b > 0 ? Math.round((s / b) * 100) : 0;
+            document.getElementById('detailTitle').innerText = (p.category || '') + ' ' + (p.title || '');
+            document.getElementById('balanceCard').innerHTML = `
+                <div class="flex justify-between items-center mb-1 px-2"><span class="text-[10px] opacity-40 uppercase tracking-widest">יתרה לתשלום</span><span class="text-[10px] opacity-40 font-bold">תקציב: ₪${b.toLocaleString()}</span></div>
+                <div class="text-4xl font-black italic mb-3">₪${rem.toLocaleString()}</div>
+                <div class="progress-container"><div class="progress-perc">${perc}% נוצל</div><div class="progress-bar"><div class="progress-fill" style="width: ${Math.min(perc, 100)}%"></div></div></div>`;
+            document.getElementById('mediaGallery').innerHTML = (p.images || []).map((u, i) => `<div class="img-container"><img src="${u}" class="img-thumb" onclick="window.open('${u}')"><div class="del-img-btn" onclick="event.stopPropagation(); deleteImage(${i})"><i class="fas fa-times"></i></div></div>`).reverse().join('');
+            document.getElementById('tasksList').innerHTML = (p.tasks || []).map((t, i) => `<div class="bg-white/5 p-4 rounded-2xl flex justify-between"><span>${t.name}</span><div class="flex gap-4"><b>₪${t.price}</b><button onclick="deleteTask(${i})" class="text-red-400 opacity-30"><i class="fas fa-trash"></i></button></div></div>`).reverse().join('');
         }
 
         function renderUI() {
             const container = document.getElementById('projectsView');
-            container.innerHTML = projects.map(p => {
+            const filtered = projects.filter(p => isArchiveView ? p.isArchived : !p.isArchived);
+            container.innerHTML = filtered.map(p => {
                 const b = Number(p.budget || 0), s = (p.tasks || []).reduce((acc, t) => acc + Number(t.price || 0), 0);
-                const perc = b > 0 ? Math.min(Math.round((s / b) * 100), 100) : 0;
-                return `<div class="glass-card p-8" onclick="openProjectDetail('${p.id}')">
-                    <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-black italic">${p.category || ''} ${p.title}</h3><span>₪${(b-s).toLocaleString()}</span></div>
-                    <div class="progress-bar"><div class="progress-fill" style="width: ${perc}%"></div></div>
+                const perc = b > 0 ? Math.round((s / b) * 100) : 0;
+                return `<div class="glass-card p-8 mb-2" onclick="openProjectDetail('${p.id}')">
+                    <div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-black italic text-white">${p.category || ''} ${p.title || ''}</h3><span class="text-xs opacity-40">₪${(b-s).toLocaleString()}</span></div>
+                    <div class="progress-container"><div class="progress-perc">${perc}%</div><div class="progress-bar"><div class="progress-fill" style="width: ${Math.min(perc, 100)}%"></div></div></div>
                 </div>`;
             }).join('');
         }
 
-        // --- פונקציות עזר ---
-        function openNewProjectModal() { document.getElementById('newProjectModal').classList.remove('hidden'); }
-        function closeNewProjectModal() { document.getElementById('newProjectModal').classList.add('hidden'); document.getElementById('aiBoard').style.display = 'none'; currentAiTasks = []; }
-        function goHome() { document.getElementById('projectsView').classList.remove('hidden'); document.getElementById('dashboardView').classList.add('hidden'); }
-        function toggleView() { document.getElementById('projectsView').classList.toggle('hidden'); document.getElementById('dashboardView').classList.toggle('hidden'); }
-        function openProjectDetail(id) { currentProjectId = id; const p = projects.find(x => x.id === id); document.getElementById('detailTitle').innerText = p.title; document.getElementById('projectDetailModal').classList.remove('hidden'); renderProjectInfo(); }
-        function closeProjectDetail() { document.getElementById('projectDetailModal').classList.add('hidden'); }
-        function renderProjectInfo() {
-            const p = projects.find(x => x.id === currentProjectId);
-            document.getElementById('tasksList').innerHTML = (p.tasks || []).map(t => `<div class="bg-white/5 p-4 rounded-2xl flex justify-between"><span>${t.name}</span><b>₪${t.price}</b></div>`).join('');
+        async function saveProject() {
+            const c = document.getElementById('pCatInp').value, t = document.getElementById('pTitleInp').value, b = Number(document.getElementById('pBudgetInp').value), st = document.getElementById('pStartInp').value, en = document.getElementById('pEndInp').value;
+            if(t) { await db.collection('family_plans').add({ category: c, title: t, budget: b, startDate: st, endDate: en, collaborators: [userEmail], tasks: [], images: [], isArchived: false, createdAt: new Date() }); closeNewProjectModal(); }
         }
+
+        function toggleProjectSettings() { document.getElementById('projectSettings').classList.toggle('hidden'); }
+        async function deleteProjectPermanently() { if(confirm("למחוק לצמיתות?")) { await db.collection('family_plans').doc(currentProjectId).delete(); closeProjectDetail(); } }
+        async function toggleArchiveStatus() { const p = projects.find(x => x.id === currentProjectId); await db.collection('family_plans').doc(currentProjectId).update({ isArchived: !p.isArchived }); closeProjectDetail(); }
+        async function deleteImage(idx) { const p = projects.find(x => x.id === currentProjectId); let imgs = [...(p.images || [])]; imgs.reverse(); imgs.splice(idx, 1); imgs.reverse(); await db.collection('family_plans').doc(currentProjectId).update({ images: imgs }); }
+        
+        function renderDashboard() {
+            const a = projects.filter(p => !p.isArchived);
+            const tp = a.reduce((s, p) => s + Number(p.budget || 0), 0), ts = a.reduce((s, p) => s + (p.tasks || []).reduce((x, t) => x + Number(t.price), 0), 0);
+            document.getElementById('totalPlanned').innerText = `₪${tp.toLocaleString()}`;
+            document.getElementById('totalSpent').innerText = `₪${ts.toLocaleString()}`;
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            if(myChart) myChart.destroy();
+            myChart = new Chart(ctx, { type: 'bar', data: { labels: a.map(p => p.title), datasets: [{ label: 'תקציב', data: a.map(p => p.budget || 0), backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10 }, { label: 'נוצל', data: a.map(p => (p.tasks || []).reduce((x, t) => x + Number(t.price), 0)), backgroundColor: 'white', borderRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: false } });
+        }
+
+        function renderGantt() {
+            const container = document.getElementById('ganttRows');
+            const active = projects.filter(p => !p.isArchived);
+            let html = `<div class="flex gap-1 mb-2 opacity-30 text-[8px] pr-20">`;
+            ['ינו','פב','מר','אפ','מאי','יונ'].forEach(m => html += `<div class="flex-1 text-center border-r border-white/10">${m}</div>`);
+            html += `</div>`;
+            html += active.map(p => {
+                const st = p.startDate ? new Date(p.startDate) : new Date();
+                const en = p.endDate ? new Date(p.endDate) : new Date(Date.now() + 2592000000);
+                const startPos = (st.getMonth() / 12) * 100;
+                const width = Math.max(((en - st) / (1000 * 60 * 60 * 24 * 365)) * 100, 10);
+                return `<div class="flex items-center gap-4 h-10"><div class="w-20 text-[9px] font-bold opacity-50 truncate">${p.title}</div><div class="flex-1 h-2 bg-white/5 rounded-full relative"><div class="absolute h-full bg-white rounded-full" style="right:${startPos}%; width:${width}%"></div></div></div>`;
+            }).join('');
+            container.innerHTML = html;
+        }
+
+        function triggerUpload() { document.getElementById('imgUpload').click(); }
+        async function compressAndUpload(input) {
+            if(!input.files[0]) return;
+            const reader = new FileReader();
+            reader.readAsDataURL(input.files[0]);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = async () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX = 800; const scale = MAX / img.width;
+                    canvas.width = MAX; canvas.height = img.height * scale;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    const base64 = canvas.toDataURL('image/jpeg', 0.6);
+                    const p = projects.find(x => x.id === currentProjectId);
+                    await db.collection('family_plans').doc(currentProjectId).update({ images: [...(p.images || []), base64] });
+                    input.value = '';
+                };
+            };
+        }
+
+        function goHome() { isDashboard = isGantt = false; document.querySelectorAll('main > div').forEach(d => d.classList.add('hidden')); document.getElementById('projectsView').classList.remove('hidden'); renderUI(); }
+        function toggleView() { isDashboard = !isDashboard; isGantt = false; document.getElementById('projectsView').classList.toggle('hidden', isDashboard); document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard); document.getElementById('ganttView').classList.add('hidden'); if(isDashboard) renderDashboard(); }
+        function toggleGantt() { isGantt = !isGantt; isDashboard = false; document.getElementById('projectsView').classList.toggle('hidden', isGantt); document.getElementById('ganttView').classList.toggle('hidden', !isGantt); document.getElementById('dashboardView').classList.add('hidden'); if(isGantt) renderGantt(); }
+        function openProjectDetail(id) { currentProjectId = id; document.getElementById('projectDetailModal').classList.remove('hidden'); renderProjectInfo(); }
+        function closeProjectDetail() { document.getElementById('projectDetailModal').classList.add('hidden'); currentProjectId = null; }
+        function openNewProjectModal() { document.getElementById('newProjectModal').classList.remove('hidden'); }
+        function closeNewProjectModal() { document.getElementById('newProjectModal').classList.add('hidden'); }
+        function openPartnerModal() { document.getElementById('partnerModal').classList.remove('hidden'); }
+        function closePartnerModal() { document.getElementById('partnerModal').classList.add('hidden'); }
+
+        async function addTask() {
+            const n = document.getElementById('taskName').value, pr = Number(document.getElementById('taskPrice').value);
+            if(n && pr) {
+                const p = projects.find(x => x.id === currentProjectId);
+                await db.collection('family_plans').doc(currentProjectId).update({ tasks: [...(p.tasks || []), { name: n, price: pr, date: new Date() }] });
+                document.getElementById('taskName').value = ''; document.getElementById('taskPrice').value = '';
+            }
+        }
+
+        async function deleteTask(i) {
+            const p = projects.find(x => x.id === currentProjectId);
+            let u = [...(p.tasks || [])]; u.reverse(); u.splice(i, 1); u.reverse();
+            await db.collection('family_plans').doc(currentProjectId).update({ tasks: u });
+        }
+
+        async function savePartner() {
+            const p = document.getElementById('partnerEmail').value.trim().toLowerCase();
+            if(p) {
+                const b = db.batch();
+                projects.forEach(pr => {
+                    let c = pr.collaborators || [userEmail];
+                    if(!c.includes(p)) { c.push(p); b.update(db.collection('family_plans').doc(pr.id), { collaborators: c }); }
+                });
+                await b.commit(); alert("שותף נוסף!"); closePartnerModal();
+            }
+        }
+        function toggleArchiveView() { isArchiveView = !isArchiveView; renderUI(); }
     </script>
 </body>
 </html>
