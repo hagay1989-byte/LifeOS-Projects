@@ -173,7 +173,7 @@
         </div>
     </div>
 
-    <script>
+<script>
         const firebaseConfig = { apiKey: "AIzaSyB7U5xw_FMThsmM2hNMRnkdMYnD2cutH2s", authDomain: "project-manager-4702c.firebaseapp.com", projectId: "project-manager-4702c", storageBucket: "project-manager-4702c.firebasestorage.app", messagingSenderId: "941533299304", appId: "1:941533299304:web:92f8940e93a96b1f8b71dd" };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(), db = firebase.firestore();
@@ -252,13 +252,16 @@
 
         function renderProjectInfo() {
             const p = projects.find(x => x.id === currentProjectId); if(!p) return;
-            const budget = Number(p.budget || 0), spent = (p.tasks || []).reduce((acc, t) => t.done ? acc + Number(t.price || 0) : acc, 0);
+            const budget = Number(p.budget || 0);
+            const spent = (p.tasks || []).reduce((acc, t) => t.done ? acc + (Number(t.price) || 0) : acc, 0);
             const remaining = budget - spent, perc = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+            
             document.getElementById('detailTitle').innerText = p.title;
             document.getElementById('balanceCard').innerHTML = `
                 <div class="flex justify-between items-center mb-1 px-2"><span class="text-[10px] opacity-40 uppercase">יתרה לניצול</span><span class="text-[10px] opacity-40 font-bold">תקציב: ₪${budget.toLocaleString()}</span></div>
                 <div class="text-4xl font-black italic mb-3">₪${remaining.toLocaleString()}</div>
                 <div class="progress-container"><div class="progress-bar"><div class="progress-fill" style="width: ${Math.min(perc, 100)}%"></div></div></div>`;
+            
             document.getElementById('tasksList').innerHTML = (p.tasks || []).map((t, i) => `
                 <div class="bg-white/5 p-4 rounded-2xl flex items-center justify-between ${t.done ? 'task-done' : ''}">
                     <div class="flex items-center gap-3">
@@ -266,14 +269,16 @@
                         <span>${t.name}</span>
                     </div>
                     <div class="flex gap-4 items-center"><b>₪${Number(t.price).toLocaleString()}</b><button onclick="deleteTask(${i})" class="text-red-400 opacity-30"><i class="fas fa-trash"></i></button></div>
-                </div>`).reverse().join('');
-            document.getElementById('mediaGallery').innerHTML = (p.images || []).map((u, i) => `<div class="img-container"><img src="${u}" class="img-thumb" onclick="window.open('${u}')"><div class="del-img-btn" onclick="event.stopPropagation(); deleteImage(${i})"><i class="fas fa-times"></i></div></div>`).reverse().join('');
+                </div>`).slice().reverse().join('');
+            
+            document.getElementById('mediaGallery').innerHTML = (p.images || []).map((u, i) => `<div class="img-container"><img src="${u}" class="img-thumb" onclick="window.open('${u}')"><div class="del-img-btn" onclick="event.stopPropagation(); deleteImage(${i})"><i class="fas fa-times"></i></div></div>`).slice().reverse().join('');
         }
 
         async function toggleTaskDone(idx) {
             const p = projects.find(x => x.id === currentProjectId);
-            let tasks = [...(p.tasks || [])]; const realIdx = tasks.length - 1 - idx;
-            tasks[realIdx].done = !tasks[realIdx].done;
+            if (!p || !p.tasks) return;
+            let tasks = [...p.tasks];
+            tasks[idx].done = !tasks[idx].done;
             await db.collection('family_plans').doc(currentProjectId).update({ tasks: tasks });
         }
 
@@ -288,8 +293,11 @@
 
         async function deleteTask(i) {
             const p = projects.find(x => x.id === currentProjectId);
-            let u = [...(p.tasks || [])]; u.reverse(); u.splice(i, 1); u.reverse();
-            await db.collection('family_plans').doc(currentProjectId).update({ tasks: u });
+            if (!p || !p.tasks) return;
+            let tasks = [...p.tasks];
+            // מכיוון שהצגנו אותם הפוך (reverse), אנחנו צריכים למחוק את האינדקס הנכון
+            tasks.splice(i, 1);
+            await db.collection('family_plans').doc(currentProjectId).update({ tasks: tasks });
         }
 
         function exportToExcel() {
@@ -315,7 +323,6 @@
         async function toggleArchiveStatus() { const p = projects.find(x => x.id === currentProjectId); await db.collection('family_plans').doc(currentProjectId).update({ isArchived: !p.isArchived }); closeProjectDetail(); }
         async function deleteProjectPermanently() { if(confirm("למחוק לצמיתות?")) { await db.collection('family_plans').doc(currentProjectId).delete(); closeProjectDetail(); } }
 
-        // UPDATED DASHBOARD LOGIC
         function renderDashboard() {
             const a = projects.filter(p => !p.isArchived);
             const tp = a.reduce((s, p) => s + Number(p.budget || 0), 0);
@@ -323,7 +330,6 @@
             document.getElementById('totalPlanned').innerText = `₪${tp.toLocaleString()}`;
             document.getElementById('totalSpent').innerText = `₪${ts.toLocaleString()}`;
 
-            // Chart 1: Projects Comparison
             const ctx1 = document.getElementById('mainChart').getContext('2d');
             if(myChart) myChart.destroy();
             myChart = new Chart(ctx1, {
@@ -338,7 +344,6 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.3)' } }, x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.3)' } } } }
             });
 
-            // Chart 2: Categories Distribution
             const catMap = {};
             a.forEach(p => {
                 const cat = p.category || '⚙️ כללי';
