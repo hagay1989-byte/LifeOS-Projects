@@ -14,24 +14,65 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-functions.js"></script>
 
-<style>
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .animate-fadeIn { animation: fadeIn 0.5s ease forwards; }
-    body { font-family: 'Heebo', sans-serif; background: radial-gradient(circle at top right, #1e1b4b, #0f172a 80%); background-attachment: fixed; color: white; text-align: right; min-height: 100vh; margin: 0; padding-top: env(safe-area-inset-top); overflow-x: hidden; }
-    .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 36px; }
-    .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 28px; transition: all .25s ease; cursor: pointer; position: relative; overflow: hidden; }
-    .progress-bar { background: rgba(255,255,255,0.08); height: 8px; border-radius: 10px; overflow: hidden; width: 100%; position: relative; }
-    .progress-fill { height: 100%; transition: width .8s ease; border-radius: 10px; }
-    .modal-overlay { position: fixed; inset: 0; display: flex; align-items: flex-start; justify-content: center; background: rgba(10, 15, 28, 0.96); backdrop-filter: blur(22px); z-index: 1000; padding: 20px; overflow-y: auto; }
-    input, select { background: rgba(255, 255, 255, 0.92) !important; border-radius: 16px !important; color: #0f172a !important; padding: 12px !important; width: 100%; border: none !important; }
-    .nav-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 16px; color: white; transition: .2s; }
-    ::-webkit-scrollbar { display: none; }
-    .img-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    @media(min-width:768px) { .img-grid { grid-template-columns: repeat(3, 1fr); } }
-    .img-container { position: relative; border-radius: 18px; overflow: hidden; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); }
-    .img-thumb { width: 100%; aspect-ratio: 1; object-fit: cover; }
-    .del-img-btn { position: absolute; top: 6px; left: 6px; width: 26px; height: 26px; border-radius: 10px; background: rgba(0,0,0,0.55); color: #ff6b6b; display: flex; align-items: center; justify-content: center; font-size: 11px; opacity: 0; transition: 0.2s; }
-</style>
+    <style>
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fadeIn { animation: fadeIn 0.5s ease forwards; }
+        
+        body { 
+            font-family: 'Heebo', sans-serif; 
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a 80%); 
+            background-attachment: fixed; 
+            color: white; 
+            text-align: right; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding-top: env(safe-area-inset-top); 
+            overflow-x: hidden; 
+        }
+
+        .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 36px; }
+        
+        .glass-card { 
+            background: rgba(255, 255, 255, 0.05); 
+            backdrop-filter: blur(14px); 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            border-radius: 28px; 
+            transition: all .25s ease; 
+            cursor: pointer; 
+            position: relative;
+            overflow: hidden; 
+        }
+
+        .progress-bar { 
+            background: rgba(255,255,255,0.08); 
+            height: 8px; 
+            border-radius: 10px; 
+            overflow: hidden; 
+            width: 100%;
+            position: relative;
+        }
+
+        .progress-fill { 
+            height: 100%; 
+            transition: width .8s ease; 
+            border-radius: 10px;
+            background: #ffffff;
+            box-shadow: 0 0 10px rgba(255,255,255,0.2);
+        }
+
+        .modal-overlay { position: fixed; inset: 0; display: flex; align-items: flex-start; justify-content: center; background: rgba(10, 15, 28, 0.96); backdrop-filter: blur(22px); z-index: 1000; padding: 20px; overflow-y: auto; }
+        input, select { background: rgba(255, 255, 255, 0.92) !important; border-radius: 16px !important; color: #0f172a !important; padding: 12px !important; width: 100%; border: none !important; font-weight: bold; }
+        
+        .nav-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 10px 14px; border-radius: 14px; color: white; transition: .2s; }
+        .nav-btn:hover { background: rgba(255,255,255,0.15); }
+        
+        .img-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        @media(min-width:768px) { .img-grid { grid-template-columns: repeat(3, 1fr); } }
+        .img-container { position: relative; border-radius: 18px; overflow: hidden; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .img-thumb { width: 100%; aspect-ratio: 1; object-fit: cover; }
+        
+        ::-webkit-scrollbar { display: none; }
+    </style>
 </head>
 <body class="p-4 flex justify-center items-start">
 
@@ -49,16 +90,14 @@
         <header class="p-6 flex justify-between items-center border-b border-white/5">
             <div class="flex gap-3 items-center">
                 <h1 onclick="goHome()" class="text-2xl font-black italic cursor-pointer">LifeOS</h1>
-                <button onclick="toggleGantt()" class="nav-btn"><i class="fas fa-calendar-alt"></i></button>
-                <button onclick="openPartnerModal()" class="nav-btn text-purple-400"><i class="fas fa-fingerprint"></i></button>
+                <button onclick="toggleGantt()" class="nav-btn" title="לוח זמנים"><i class="fas fa-calendar-alt"></i></button>
+                <button onclick="openPartnerModal()" class="nav-btn text-purple-400" title="שותפים"><i class="fas fa-fingerprint"></i></button>
             </div>
             <div class="flex gap-2 items-center">
-                <button onclick="openAccessibilityModal()" class="flex items-center gap-1 text-white/70 text-[11px] bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/20 transition">
-                    <i class="fas fa-universal-access"></i> נגישות
-                </button>
+                <button onclick="openAccessibilityModal()" class="text-[11px] bg-white/10 px-3 py-2 rounded-lg border border-white/10">נגישות</button>
                 <button onclick="toggleArchiveView()" id="archiveBtn" class="px-4 py-2 bg-white/5 rounded-xl text-[10px] font-bold border border-white/10">📦 ארכיון</button>
                 <button onclick="toggleView()" id="viewBtn" class="px-4 py-2 glass-card text-[10px] font-black uppercase">דשבורד</button>
-                <button onclick="auth.signOut()" class="text-white/30 p-2"><i class="fas fa-sign-out-alt"></i></button>
+                <button onclick="auth.signOut()" class="text-white/30 p-2 hover:text-white"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
 
@@ -77,7 +116,7 @@
             </div>
             
             <div id="ganttView" class="hidden space-y-6 pb-24">
-                <div id="ganttRows" class="space-y-4 bg-white/5 p-6 rounded-3xl"></div>
+                <div id="ganttRows" class="space-y-4 bg-white/5 p-6 rounded-3xl min-h-[200px]"></div>
             </div>
         </main>
         
@@ -87,19 +126,16 @@
     <div id="newProjectModal" class="hidden modal-overlay">
         <div class="glass-panel p-8 w-full max-w-md mt-4 relative text-right">
             <button onclick="closeNewProjectModal()" class="absolute top-4 left-4 text-white/40 p-2"><i class="fas fa-times"></i></button>
-            <h3 class="text-xl font-black mb-6 text-center italic">פרויקט חדש</h3>
+            <h3 class="text-xl font-black mb-6 text-center italic">יצירת פרויקט חדש</h3>
             <div class="space-y-4">
-                <input type="text" id="pTitleInp" placeholder="שם הפרויקט...">
-                <div id="aiPreviewArea" class="hidden bg-white/5 p-4 rounded-2xl border border-white/5">
-                    <div id="previewTasksContainer" class="max-h-[320px] overflow-y-auto space-y-2 mb-4"></div>
-                    <div class="flex justify-between items-center text-xs font-bold border-t border-white/10 pt-3"><span class="text-indigo-400">₪<span id="totalLabel">0</span></span><button onclick="recalculateAI()" class="opacity-40">חשב מחדש ✨</button></div>
-                </div>
+                <input type="text" id="pTitleInp" placeholder="מה התכנון?">
                 <select id="pCatInp"><option value="trip">✈️ טיול</option><option value="event">🎉 אירוע</option><option value="renovation">🏠 שיפוץ</option><option value="general">⚙️ כללי</option></select>
-                <select id="budgetLevel"><option value="standard">💰 רגיל</option><option value="premium">✨ פרימיום</option></select>
-                <div class="grid grid-cols-2 gap-2"><input type="date" id="pStartInp"><input type="date" id="pEndInp"></div>
-                <button id="aiBtn" onclick="generateAIPreview()" class="w-full py-4 bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-black rounded-2xl italic">✨ תכנן ב-AI</button>
-                <input type="number" id="pBudgetInp" placeholder="תקציב">
-                <button onclick="saveProject()" class="w-full py-4 bg-white text-black font-black rounded-2xl">שמור</button>
+                <select id="budgetLevel"><option value="standard">💰 תקציב רגיל</option><option value="premium">✨ תקציב פרימיום</option></select>
+                <div class="grid grid-cols-2 gap-2"><input type="date" id="pStartInp" title="תאריך התחלה"><input type="date" id="pEndInp" title="תאריך סיום"></div>
+                <input type="number" id="pBudgetInp" placeholder="תקציב משוער (₪)">
+                <button id="aiBtn" onclick="generateAIPreview()" class="w-full py-4 bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-black rounded-2xl">✨ תכנן לי ב-AI</button>
+                <div id="aiPreviewArea" class="hidden bg-white/5 p-4 rounded-2xl border border-white/5 max-h-40 overflow-y-auto mb-4 text-xs" id="previewTasksContainer"></div>
+                <button onclick="saveProject()" class="w-full py-4 bg-white text-black font-black rounded-2xl">שמור פרויקט</button>
             </div>
         </div>
     </div>
@@ -109,35 +145,36 @@
             <button onclick="closeProjectDetail()" class="absolute top-6 left-6 text-white/40"><i class="fas fa-times"></i></button>
             <header class="mb-8">
                 <h2 id="detailTitle" class="text-3xl font-black italic mb-4"></h2>
-                <div id="projectUsers" class="flex -space-x-2 mb-4"></div>
+                <div id="projectUsers" class="flex -space-x-2 mb-6"></div>
                 <div id="balanceCard" class="glass-card p-6 bg-white/10"></div>
             </header>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                    <h4 class="text-sm font-bold mb-4 opacity-50 uppercase">משימות</h4>
-                    <div class="flex gap-2 mb-4"><input type="text" id="taskName" placeholder="משימה" class="flex-1"><input type="number" id="taskPrice" placeholder="₪" class="w-24"><button onclick="addTask()" class="bg-white text-slate-900 px-4 rounded-xl font-bold">+</button></div>
-                    <div id="tasksList" class="space-y-3 max-h-60 overflow-y-auto"></div>
+                    <h4 class="text-sm font-bold mb-4 opacity-50 uppercase">משימות ותשלומים</h4>
+                    <div class="flex gap-2 mb-4"><input type="text" id="taskName" placeholder="שם המשימה" class="flex-1"><input type="number" id="taskPrice" placeholder="₪" class="w-20"><button onclick="addTask()" class="bg-white text-slate-900 px-4 rounded-xl font-bold">+</button></div>
+                    <div id="tasksList" class="space-y-3 max-h-64 overflow-y-auto"></div>
                 </div>
                 <div>
-                    <h4 class="text-sm font-bold mb-4 opacity-60 uppercase">מדיה</h4>
+                    <h4 class="text-sm font-bold mb-4 opacity-60 uppercase">מדיה ומסמכים</h4>
                     <div id="mediaGallery" class="img-grid mb-4"></div>
-                    <button onclick="triggerUpload()" class="w-full py-8 border-2 border-dashed border-white/10 rounded-2xl bg-white/5"><i class="fas fa-camera opacity-70"></i></button>
+                    <button onclick="triggerUpload()" class="w-full py-8 border-2 border-dashed border-white/10 rounded-2xl bg-white/5 flex flex-col items-center"><i class="fas fa-camera text-xl opacity-50 mb-2"></i><span class="text-xs opacity-50">העלה תמונה</span></button>
                     <input type="file" id="imgUpload" class="hidden" accept="image/*" onchange="compressAndUpload(this)">
                 </div>
             </div>
-            <div class="mt-8 pt-6 border-t border-white/5 flex gap-2">
-                <button onclick="shareViaWhatsApp()" class="nav-btn text-xs">WhatsApp</button>
-                <button onclick="toggleArchiveStatus()" class="nav-btn text-xs">📦 ארכיון</button>
-                <button onclick="deleteProjectPermanently()" class="nav-btn text-xs text-red-400">מחיקה</button>
+            <div class="mt-10 pt-6 border-t border-white/5 flex justify-between">
+                <button onclick="shareViaWhatsApp()" class="text-green-400 text-xs font-bold"><i class="fab fa-whatsapp"></i> שתף</button>
+                <button onclick="toggleArchiveStatus()" class="text-white/40 text-xs">📦 העבר לארכיון</button>
+                <button onclick="deleteProjectPermanently()" class="text-red-400 text-xs font-bold">❌ מחיקה</button>
             </div>
         </div>
     </div>
 
-    <div id="partnerModal" class="hidden modal-overlay"><div class="glass-panel p-10 w-full max-w-sm mt-20 text-center"><input type="email" id="partnerEmail" placeholder="מייל השותף" class="mb-4 text-left ltr"><button onclick="savePartner()" class="w-full py-4 bg-white text-slate-900 font-black rounded-2xl">הוסף שותף</button><button onclick="closePartnerModal()" class="mt-4 opacity-50">סגור</button></div></div>
-    <div id="accessibilityModal" class="hidden modal-overlay"><div class="glass-panel p-8 w-full max-w-lg mt-14"><h3>נגישות</h3><p>האתר מונגש ברמת AA.</p><button onclick="closeAccessibilityModal()">סגור</button></div></div>
-    <div id="imageLightbox" class="hidden fixed inset-0 z-[3000] bg-black/90 flex items-center justify-center p-4" onclick="this.classList.add('hidden')"><img id="fullScreenImg" src="" class="max-w-full max-h-full rounded-3xl"></div>
+    <div id="partnerModal" class="hidden modal-overlay"><div class="glass-panel p-10 w-full max-w-sm mt-20 text-center"><h3 class="mb-6 font-bold">הוספת שותף פרויקט</h3><input type="email" id="partnerEmail" placeholder="מייל השותף" class="mb-4 ltr text-left"><button onclick="savePartner()" class="w-full py-4 bg-white text-slate-900 font-black rounded-2xl">שמור</button><button onclick="closePartnerModal()" class="mt-4 opacity-40 text-xs">ביטול</button></div></div>
+    <div id="accessibilityModal" class="hidden modal-overlay"><div class="glass-panel p-8 w-full max-w-lg mt-14 text-right"><h3>הצהרת נגישות</h3><p class="text-sm opacity-70 mt-4">האתר מונגש לפי תקן AA. לכל שאלה ניתן לפנות לתמיכה.</p><button onclick="closeAccessibilityModal()" class="mt-6 bg-white text-black px-6 py-2 rounded-xl font-bold">סגור</button></div></div>
+    <div id="imageLightbox" class="hidden fixed inset-0 z-[3000] bg-black/95 flex items-center justify-center p-4" onclick="this.classList.add('hidden')"><img id="fullScreenImg" src="" class="max-w-full max-h-full rounded-2xl shadow-2xl"></div>
 
     <script>
+        // Configuration
         const firebaseConfig = { apiKey: "AIzaSyB7U5xw_FMThsmM2hNMRnkdMYnD2cutH2s", authDomain: "project-manager-4702c.firebaseapp.com", projectId: "project-manager-4702c", storageBucket: "project-manager-4702c.firebasestorage.app", messagingSenderId: "941533299304", appId: "1:941533299304:web:92f8940e93a96b1f8b71dd" };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(), db = firebase.firestore();
@@ -147,11 +184,20 @@
 
         function escapeHTML(s) { return s ? s.toString().replace(/[&<>"']/g, m => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;" }[m])) : ""; }
 
+        // Auth Listener
         auth.onAuthStateChanged(u => {
-            if(u){ userEmail = u.email.toLowerCase(); document.getElementById('authScreen').classList.add('hidden'); document.getElementById('appScreen').classList.remove('hidden'); loadData(); }
-            else { document.getElementById('authScreen').classList.remove('hidden'); document.getElementById('appScreen').classList.add('hidden'); }
+            if(u){ 
+                userEmail = u.email.toLowerCase(); 
+                document.getElementById('authScreen').classList.add('hidden'); 
+                document.getElementById('appScreen').classList.remove('hidden'); 
+                loadData(); 
+            } else { 
+                document.getElementById('authScreen').classList.remove('hidden'); 
+                document.getElementById('appScreen').classList.add('hidden'); 
+            }
         });
 
+        // Data Loading
         function loadData(){
             if (!userEmail) return;
             db.collection('family_plans').where('collaborators', 'array-contains', userEmail).onSnapshot(s => {
@@ -163,86 +209,221 @@
             });
         }
 
+        // Navigation
+        function goHome(){ 
+            isDashboard = isGantt = false; 
+            document.getElementById('dashboardView').classList.add('hidden'); 
+            document.getElementById('ganttView').classList.add('hidden'); 
+            document.getElementById('projectsView').classList.remove('hidden'); 
+            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
+        }
+
+        function toggleView(){ 
+            isDashboard = !isDashboard; isGantt = false; 
+            document.getElementById('projectsView').classList.toggle('hidden', isDashboard); 
+            document.getElementById('dashboardView').classList.toggle('hidden', !isDashboard); 
+            document.getElementById('ganttView').classList.add('hidden'); 
+            if(isDashboard) setTimeout(renderDashboard, 200); 
+        }
+
+        function toggleGantt(){ 
+            isGantt = !isGantt; isDashboard = false; 
+            document.getElementById('projectsView').classList.toggle('hidden', isGantt); 
+            document.getElementById('ganttView').classList.toggle('hidden', !isGantt); 
+            document.getElementById('dashboardView').classList.add('hidden'); 
+            if(isGantt) renderGantt(); 
+        }
+
+        // UI Rendering
         function renderUI() {
             const container = document.getElementById('projectsView');
             if (!container) return;
             const filtered = projects.filter(p => isArchiveView ? p.isArchived : !p.isArchived);
+            
+            if (filtered.length === 0 && !isArchiveView) {
+                container.innerHTML = `<div class="col-span-full py-20 text-center opacity-40 italic">אין פרויקטים פעילים. צור אחד חדש!</div>`;
+                return;
+            }
+
             container.innerHTML = filtered.map(p => {
-                const b = Number(p.budget || 0), s = (p.tasks || []).reduce((acc,t)=> t.done ? acc + Number(t.price || 0) : acc ,0), pr = b > 0 ? Math.round((s/b)*100) : 0;
-                return `<div class="glass-card p-8 animate-fadeIn" onclick="openProjectDetail('${p.id}')">
-                    <div class="flex justify-between items-start mb-6"><h3 class="text-2xl font-black italic text-white">${escapeHTML(p.title)}</h3><span class="text-[11px] opacity-40 font-bold">₪${(b - s).toLocaleString()}</span></div>
-                    <div class="progress-bar"><div class="progress-fill bg-white" style="width: ${Math.min(pr, 100)}%"></div></div>
-                    <div class="flex justify-between items-center mt-3"><span class="text-[10px] opacity-40 uppercase">ניצול</span><span class="text-[10px] opacity-60">${pr}%</span></div>
-                </div>`;
+                const b = Number(p.budget || 0), 
+                      s = (p.tasks || []).reduce((acc,t)=> t.done ? acc + Number(t.price || 0) : acc ,0), 
+                      pr = b > 0 ? Math.round((s/b)*100) : 0;
+                return `
+                    <div class="glass-card p-8 animate-fadeIn" onclick="openProjectDetail('${p.id}')">
+                        <div class="flex justify-between items-start mb-6">
+                            <h3 class="text-2xl font-black italic text-white">${escapeHTML(p.title)}</h3>
+                            <span class="text-[11px] opacity-40 font-bold">₪${(b - s).toLocaleString()}</span>
+                        </div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: ${Math.min(pr, 100)}%"></div></div>
+                        <div class="flex justify-between items-center mt-3 text-[10px] opacity-50 font-bold uppercase">
+                            <span>ניצול תקציב</span><span>${pr}%</span>
+                        </div>
+                    </div>`;
             }).join('');
         }
 
-        function toggleView(){ 
-            isDashboard=!isDashboard; isGantt=false; 
-            document.getElementById('projectsView').classList.toggle('hidden',isDashboard); 
-            document.getElementById('dashboardView').classList.toggle('hidden',!isDashboard); 
-            document.getElementById('ganttView').classList.add('hidden'); 
-            if(isDashboard) setTimeout(renderDashboard, 100); 
-        }
-        function toggleGantt(){ 
-            isGantt=!isGantt; isDashboard=false; 
-            document.getElementById('projectsView').classList.toggle('hidden',isGantt); 
-            document.getElementById('ganttView').classList.toggle('hidden',!isGantt); 
-            document.getElementById('dashboardView').classList.add('hidden'); 
-            if(isGantt) renderGantt(); 
-        }
-        function goHome(){ isDashboard=isGantt=false; document.getElementById('dashboardView').classList.add('hidden'); document.getElementById('ganttView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); }
+        function renderProjectInfo() {
+            const p = projects.find(x => x.id === currentProjectId);
+            if (!p) return;
+            const b = Number(p.budget || 0), 
+                  s = (p.tasks || []).reduce((acc, t) => t.done ? acc + Number(t.price || 0) : acc, 0), 
+                  pr = b > 0 ? Math.min(Math.round((s / b) * 100), 100) : 0;
 
+            document.getElementById('detailTitle').innerText = p.title;
+            document.getElementById('projectUsers').innerHTML = (p.collaborators || []).map(e => `
+                <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-bold border-2 border-[#0f172a]">${e.charAt(0).toUpperCase()}</div>
+            `).join("");
+
+            document.getElementById('balanceCard').innerHTML = `
+                <div class="text-[10px] opacity-40 uppercase mb-1">יתרה לניצול</div>
+                <div class="text-4xl font-black italic mb-4">₪${(b-s).toLocaleString()}</div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${pr}%"></div></div>
+                <div class="flex justify-between text-[9px] opacity-30 mt-2"><span>נוצל: ${pr}%</span><span>תקציב: ₪${b.toLocaleString()}</span></div>
+            `;
+
+            document.getElementById('tasksList').innerHTML = (p.tasks || []).map((t, i) => `
+                <div class="bg-white/5 p-4 rounded-2xl flex items-center justify-between mb-2 ${t.done ? 'opacity-40' : ''}">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTaskDone(${i})" class="w-4 h-4">
+                        <span class="font-bold text-sm">${escapeHTML(t.name)}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs opacity-50">₪${Number(t.price).toLocaleString()}</span>
+                        <button onclick="deleteTask(${i})" class="text-red-400 opacity-20 hover:opacity-100"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                </div>
+            `).join("");
+
+            document.getElementById('mediaGallery').innerHTML = (p.images || []).map((img, i) => `
+                <div class="img-container"><img src="${img}" class="img-thumb" onclick="openLightbox('${img}')"></div>
+            `).join("");
+        }
+
+        // Dashboard & Gantt
         function renderDashboard() {
             let tp = 0, ts = 0; const pl = [], bd = [], sd = [], ct = {};
-            projects.forEach(p => { if (p.isArchived) return; const b = Number(p.budget || 0), s = (p.tasks || []).reduce((a, t) => t.done ? a + Number(t.price || 0) : a, 0); tp += b; ts += s; pl.push(p.title); bd.push(b); sd.push(s); ct[p.category||'general'] = (ct[p.category||'general'] || 0) + s; });
+            projects.forEach(p => { 
+                if (p.isArchived) return; 
+                const b = Number(p.budget || 0), s = (p.tasks || []).reduce((a, t) => t.done ? a + Number(t.price || 0) : a, 0); 
+                tp += b; ts += s; pl.push(p.title); bd.push(b); sd.push(s); 
+                ct[p.category||'general'] = (ct[p.category||'general'] || 0) + s; 
+            });
             document.getElementById('totalPlanned').innerText = `₪${tp.toLocaleString()}`;
             document.getElementById('totalSpent').innerText = `₪${ts.toLocaleString()}`;
+            
             if (myChart) myChart.destroy(); if (categoryChart) categoryChart.destroy();
-            const common = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: 'white' } } } };
-            myChart = new Chart(document.getElementById('mainChart').getContext('2d'), { type: 'bar', data: { labels: pl, datasets: [ { label: 'תקציב', data: bd, backgroundColor: 'rgba(255,255,255,0.1)' }, { label: 'נוצל', data: sd, backgroundColor: '#818cf8' } ] }, options: common });
-            categoryChart = new Chart(document.getElementById('categoryChart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(ct), datasets: [{ data: Object.values(ct), backgroundColor: ['#818cf8', '#f472b6', '#fbbf24', '#34d399'] }] }, options: common });
+            const common = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: 'white', font: { family: 'Heebo' } } } } };
+            
+            myChart = new Chart(document.getElementById('mainChart').getContext('2d'), { 
+                type: 'bar', 
+                data: { labels: pl, datasets: [ { label: 'תקציב', data: bd, backgroundColor: 'rgba(255,255,255,0.05)' }, { label: 'נוצל', data: sd, backgroundColor: '#818cf8' } ] }, 
+                options: common 
+            });
+            categoryChart = new Chart(document.getElementById('categoryChart').getContext('2d'), { 
+                type: 'doughnut', 
+                data: { labels: Object.keys(ct), datasets: [{ data: Object.values(ct), backgroundColor: ['#818cf8', '#f472b6', '#fbbf24', '#34d399'] }] }, 
+                options: common 
+            });
         }
 
         function renderGantt(){
-            document.getElementById('ganttRows').innerHTML = projects.filter(p=>!p.isArchived).map(p=>{
+            const container = document.getElementById('ganttRows');
+            const filtered = projects.filter(p=>!p.isArchived);
+            if(filtered.length === 0) { container.innerHTML = "<p class='text-center opacity-30'>אין נתונים להצגה</p>"; return; }
+            
+            container.innerHTML = filtered.map(p=>{
                 const b = Number(p.budget || 0), s=(p.tasks||[]).reduce((a,t)=>t.done?a+Number(t.price||0):a,0), pr=b>0?Math.min(Math.round((s/b)*100),100):0;
-                return `<div class="p-4 bg-white/5 rounded-2xl mb-3"><div class="flex justify-between mb-2"><b>${p.title}</b><span class="text-[10px] opacity-50">${p.startDate||''} - ${p.endDate||''}</span></div><div class="progress-bar"><div class="progress-fill bg-white" style="width: ${pr}%"></div></div></div>`;
+                return `
+                    <div class="p-4 bg-white/5 rounded-2xl mb-2">
+                        <div class="flex justify-between mb-2"><b>${p.title}</b><span class="text-[10px] opacity-40">${p.startDate || 'לא הוגדר'} - ${p.endDate || 'לא הוגדר'}</span></div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: ${pr}%"></div></div>
+                    </div>`;
             }).join("");
         }
 
-        // שאר הפונקציות נשארות זהות
-        async function handleAuth(t){ const e=document.getElementById('emailInput').value.trim(), p=document.getElementById('passInput').value; try { t==='login' ? await auth.signInWithEmailAndPassword(e,p) : await auth.createUserWithEmailAndPassword(e,p); } catch(err){alert(err.message)} }
+        // Logic Functions
+        async function handleAuth(t){ 
+            const e=document.getElementById('emailInput').value.trim(), p=document.getElementById('passInput').value; 
+            try { t==='login' ? await auth.signInWithEmailAndPassword(e,p) : await auth.createUserWithEmailAndPassword(e,p); } catch(err){alert(err.message)} 
+        }
+
+        async function saveProject(){
+            const t = document.getElementById('pTitleInp').value; if(!t) return;
+            await db.collection('family_plans').add({ 
+                title: t, 
+                category: document.getElementById('pCatInp').value, 
+                budget: Number(document.getElementById('pBudgetInp').value) || 0, 
+                startDate: document.getElementById('pStartInp').value || "", 
+                endDate: document.getElementById('pEndInp').value || "", 
+                collaborators: [userEmail], 
+                tasks: tempAiTasks, 
+                images: [], 
+                isArchived: false, 
+                createdAt: firebase.firestore.FieldValue.serverTimestamp() 
+            });
+            closeNewProjectModal();
+        }
+
+        async function addTask(){ 
+            const n=document.getElementById('taskName').value.trim(), pr=Number(document.getElementById('taskPrice').value); 
+            if(!n) return; 
+            const p=projects.find(x=>x.id===currentProjectId); 
+            await db.collection('family_plans').doc(currentProjectId).update({tasks:[...(p.tasks||[]),{name:n,price:pr||0,done:false}]}); 
+            document.getElementById('taskName').value=""; document.getElementById('taskPrice').value="";
+        }
+
+        async function toggleTaskDone(i){ 
+            const p=projects.find(x=>x.id===currentProjectId); 
+            let t=[...p.tasks]; t[i].done=!t[i].done; 
+            await db.collection('family_plans').doc(currentProjectId).update({tasks:t}); 
+        }
+
+        async function deleteTask(i){ 
+            if(!confirm("למחוק משימה?")) return;
+            const p=projects.find(x=>x.id===currentProjectId); 
+            let t=[...p.tasks]; t.splice(i,1); 
+            await db.collection('family_plans').doc(currentProjectId).update({tasks:t}); 
+        }
+
+        // Modals Control
         function openProjectDetail(id){ currentProjectId=id; document.getElementById('projectDetailModal').classList.remove('hidden'); renderProjectInfo(); }
         function closeProjectDetail(){ document.getElementById('projectDetailModal').classList.add('hidden'); currentProjectId=null; }
         function openNewProjectModal(){ document.getElementById('newProjectModal').classList.remove('hidden'); }
-        function closeNewProjectModal(){ document.getElementById('newProjectModal').classList.add('hidden'); }
+        function closeNewProjectModal(){ document.getElementById('newProjectModal').classList.add('hidden'); tempAiTasks=[]; }
         function openPartnerModal(){ document.getElementById('partnerModal').classList.remove('hidden'); }
         function closePartnerModal(){ document.getElementById('partnerModal').classList.add('hidden'); }
         function openAccessibilityModal(){ document.getElementById('accessibilityModal').classList.remove('hidden'); }
         function closeAccessibilityModal(){ document.getElementById('accessibilityModal').classList.add('hidden'); }
         function toggleArchiveView(){ isArchiveView=!isArchiveView; renderUI(); }
-        function triggerUpload(){ document.getElementById('imgUpload').click() }
+        function triggerUpload(){ document.getElementById('imgUpload').click(); }
         function openLightbox(src){ document.getElementById('fullScreenImg').src=src; document.getElementById('imageLightbox').classList.remove('hidden'); }
-
-        async function saveProject(){
-            const t = document.getElementById('pTitleInp').value; if(!t) return;
-            await db.collection('family_plans').add({ title: t, category: document.getElementById('pCatInp').value, budget: Number(document.getElementById('pBudgetInp').value) || 0, startDate: document.getElementById('pStartInp').value || "", endDate: document.getElementById('pEndInp').value || "", collaborators: [userEmail], tasks: tempAiTasks, images: [], isArchived: false, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-            closeNewProjectModal();
-        }
-
-        function renderProjectInfo() {
+        
+        async function deleteProjectPermanently(){ if(confirm("למחוק פרויקט לצמיתות?")){ await db.collection('family_plans').doc(currentProjectId).delete(); closeProjectDetail(); } }
+        async function toggleArchiveStatus(){ const p=projects.find(x=>x.id===currentProjectId); await db.collection('family_plans').doc(currentProjectId).update({isArchived:!p.isArchived}); closeProjectDetail(); }
+        
+        function shareViaWhatsApp() {
             const p = projects.find(x => x.id === currentProjectId); if (!p) return;
-            const b = Number(p.budget || 0), s = (p.tasks || []).reduce((acc, t) => t.done ? acc + Number(t.price || 0) : acc, 0), pr = b > 0 ? Math.min(Math.round((s / b) * 100), 100) : 0;
-            document.getElementById('detailTitle').innerText = p.title;
-            document.getElementById('projectUsers').innerHTML = (p.collaborators || []).map(e => `<div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-bold border-2 border-[#0f172a]">${e.charAt(0).toUpperCase()}</div>`).join("");
-            document.getElementById('balanceCard').innerHTML = `<div class="text-[10px] opacity-40 uppercase mb-1">יתרה</div><div class="text-4xl font-black italic mb-4">₪${(b-s).toLocaleString()}</div><div class="progress-bar"><div class="progress-fill bg-white" style="width:${pr}%"></div></div>`;
-            document.getElementById('tasksList').innerHTML = (p.tasks || []).map((t, i) => `<div class="bg-white/5 p-4 rounded-2xl flex items-center justify-between mb-2"><div class="flex items-center gap-4"><input type="checkbox" ${t.done?'checked':''} onchange="toggleTaskDone(${i})"><b>${escapeHTML(t.name)}</b></div><span>₪${Number(t.price).toLocaleString()}</span></div>`).join("");
-            document.getElementById('mediaGallery').innerHTML = (p.images || []).map((img, i) => `<div class="img-container"><img src="${img}" class="img-thumb" onclick="openLightbox('${img}')"></div>`).join("");
+            const s = (p.tasks || []).reduce((acc, t) => t.done ? acc + Number(t.price || 0) : acc, 0);
+            const msg = encodeURIComponent(`*LifeOS: ${p.title}*\nתקציב: ₪${p.budget.toLocaleString()}\nנוצל: ₪${s.toLocaleString()}\nיתרה: ₪${(p.budget-s).toLocaleString()}`);
+            window.open(`https://wa.me/?text=${msg}`, '_blank');
         }
 
-        async function toggleTaskDone(i){ const p=projects.find(x=>x.id===currentProjectId); let t=[...p.tasks]; t[i].done=!t[i].done; await db.collection('family_plans').doc(currentProjectId).update({tasks:t}) }
-        async function addTask(){ const n=document.getElementById('taskName').value.trim(), pr=Number(document.getElementById('taskPrice').value); if(!n) return; const p=projects.find(x=>x.id===currentProjectId); await db.collection('family_plans').doc(currentProjectId).update({tasks:[...(p.tasks||[]),{name:n,price:pr||0,done:false}]}); document.getElementById('taskName').value=""; document.getElementById('taskPrice').value="" }
+        async function compressAndUpload(i){ 
+            if(!i.files[0]||!currentProjectId) return; 
+            const r = new FileReader(); r.readAsDataURL(i.files[0]); 
+            r.onload = e => { 
+                const img = new Image(); img.src = e.target.result; 
+                img.onload = async () => { 
+                    const c = document.createElement("canvas"), m = 800, s = m/img.width; 
+                    c.width = m; c.height = img.height*s; 
+                    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); 
+                    const base64 = c.toDataURL("image/jpeg", 0.7); 
+                    const p = projects.find(x => x.id === currentProjectId); 
+                    await db.collection("family_plans").doc(currentProjectId).update({ images: [...(p?.images || []), base64] }); 
+                }; 
+            }; 
+        }
     </script>
 </body>
 </html>
