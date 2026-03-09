@@ -63,8 +63,9 @@
             </div>
         </header>
 
-        <main class="flex-1 overflow-y-auto p-6">
+<main class="flex-1 overflow-y-auto p-6">
             <div id="projectsView" class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-24"></div>
+
             <div id="dashboardView" class="hidden space-y-6 pb-24">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="glass-card p-6 text-center">
@@ -79,17 +80,27 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="glass-card p-6 h-80">
                         <h4 class="text-xs font-bold mb-4 opacity-40 uppercase tracking-widest text-center">השוואת פרויקטים</h4>
-                        <div class="h-64 relative"><canvas id="mainChart"></canvas></div>
+                        <div class="h-64 relative">
+                            <canvas id="mainChart"></canvas>
+                        </div>
                     </div>
                     <div class="glass-card p-6 h-80">
                         <h4 class="text-xs font-bold mb-4 opacity-40 uppercase tracking-widest text-center">התפלגות לפי קטגוריה</h4>
-                        <div class="h-64 relative"><canvas id="categoryChart"></canvas></div>
+                        <div class="h-64 relative">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div id="ganttView" class="hidden space-y-6 pb-24"><div id="ganttRows" class="space-y-4 bg-white/5 p-6 rounded-3xl"></div></div>
+
+            <div id="ganttView" class="hidden space-y-6 pb-24">
+                <div id="ganttRows" class="space-y-4 bg-white/5 p-6 rounded-3xl"></div>
+            </div>
         </main>
-        <button onclick="openNewProjectModal()" class="absolute bottom-8 left-8 w-16 h-16 bg-white text-slate-900 rounded-2xl flex items-center justify-center shadow-2xl z-40"><i class="fas fa-plus text-xl"></i></button>
+
+        <button onclick="openNewProjectModal()" class="absolute bottom-8 left-8 w-16 h-16 bg-white text-slate-900 rounded-2xl flex items-center justify-center shadow-2xl z-40">
+            <i class="fas fa-plus text-xl"></i>
+        </button>
     </div>
 
     <div id="newProjectModal" class="hidden modal-overlay text-right">
@@ -317,15 +328,90 @@ function removeTempTask(i){tempAiTasks.splice(i,1);renderAiPreviewList()}
 async function savePartner(){const e=document.getElementById('partnerEmail').value.trim().toLowerCase();if(!e||!currentProjectId)return;const p=projects.find(x=>x.id===currentProjectId);let c=[...(p.collaborators||[])];if(!c.includes(e))c.push(e);await db.collection('family_plans').doc(currentProjectId).update({collaborators:c});alert("שותף נוסף!");closePartnerModal()}
 function exportToExcel(){alert("אקסל יופעל בקרוב")}
 
-function renderDashboard(){
-    let tp=0, ts=0; const pl=[], bd=[], sd=[]; const ct={};
-    projects.forEach(p=>{if(p.isArchived)return; const b=Number(p.budget||0), s=(p.tasks||[]).reduce((a,t)=>t.done?a+Number(t.price||0):a,0); tp+=b; ts+=s; pl.push(p.title); bd.push(b); sd.push(s); const cat=p.category||"⚙️ כללי"; ct[cat]=(ct[cat]||0)+s;});
-    document.getElementById('totalPlanned').innerText=`₪${tp.toLocaleString()}`; document.getElementById('totalSpent').innerText=`₪${ts.toLocaleString()}`;
-    if(myChart)myChart.destroy(); if(categoryChart)categoryChart.destroy();
-    const ctx1=document.getElementById('mainChart').getContext('2d');
-    myChart=new Chart(ctx1,{type:'bar',data:{labels:pl,datasets:[{label:'תקציב',data:bd,backgroundColor:'rgba(255,255,255,0.1)',borderRadius:8},{label:'נוצל',data:sd,backgroundColor:'#818cf8',borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.05)'},labels:{color:'white'}},x:{labels:{color:'white'}}}}});
-    const ctx2=document.getElementById('categoryChart').getContext('2d');
-    categoryChart=new Chart(ctx2,{type:'doughnut',data:{labels:Object.keys(ct),datasets:[{data:Object.values(ct),backgroundColor:['#818cf8','#f472b6','#fbbf24','#34d399','#60a5fa'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'white'}}}}});
+function renderDashboard() {
+    let tp = 0, ts = 0;
+    const pl = [], bd = [], sd = [], ids = []; // הוספתי מערך לשמירת ה-ID של הפרויקטים
+    const ct = {};
+
+    projects.forEach(p => {
+        if (p.isArchived) return;
+        const b = Number(p.budget || 0);
+        const s = (p.tasks || []).reduce((a, t) => t.done ? a + Number(t.price || 0) : a, 0);
+        tp += b; ts += s;
+        pl.push(p.title);
+        bd.push(b);
+        sd.push(s);
+        ids.push(p.id); // שומר את ה-ID לפי סדר העמודות בגרף
+        const cat = p.category || "⚙️ כללי";
+        ct[cat] = (ct[cat] || 0) + s;
+    });
+
+    document.getElementById('totalPlanned').innerText = `₪${tp.toLocaleString()}`;
+    document.getElementById('totalSpent').innerText = `₪${ts.toLocaleString()}`;
+
+    if (myChart) myChart.destroy();
+    if (categoryChart) categoryChart.destroy();
+
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { labels: { color: 'white', font: { family: 'Heebo', size: 10 } } }
+        }
+    };
+
+    const ctx1 = document.getElementById('mainChart').getContext('2d');
+    myChart = new Chart(ctx1, {
+        type: 'bar',
+        data: {
+            labels: pl,
+            datasets: [
+                { label: 'תקציב', data: bd, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 6 },
+                { label: 'נוצל', data: sd, backgroundColor: '#818cf8', borderRadius: 6 }
+            ]
+        },
+        options: {
+            ...commonOptions,
+            onClick: (e, activeEls) => {
+                // לוגיקה לפתיחת פרויקט בלחיצה על עמודה
+                if (activeEls.length > 0) {
+                    const dataIndex = activeEls[0].index;
+                    const projectId = ids[dataIndex];
+                    if (projectId) openProjectDetail(projectId);
+                }
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true, 
+                    ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } },
+                    grid: { color: 'rgba(255,255,255,0.05)' }
+                },
+                x: { 
+                    ticks: { color: 'white', font: { size: 10 } },
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    const ctx2 = document.getElementById('categoryChart').getContext('2d');
+    categoryChart = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(ct),
+            datasets: [{
+                data: Object.values(ct),
+                backgroundColor: ['#818cf8', '#f472b6', '#fbbf24', '#34d399', '#60a5fa'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            ...commonOptions,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: 'white', padding: 15 } }
+            }
+        }
+    });
 }
 function renderGantt(){
     const container=document.getElementById('ganttRows');
