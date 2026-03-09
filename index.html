@@ -224,13 +224,32 @@ function renderProjectInfo(){
     const p=projects.find(x=>x.id===currentProjectId); if(!p)return;
     const b=Number(p.budget||0), s=(p.tasks||[]).reduce((a,t)=>t.done?a+Number(t.price||0):a,0);
     const pr=b>0?Math.round((s/b)*100):0;
+    const balance = b - s;
+
+    // הגדרת עיצוב אזהרה: אם עברנו 90% ניצול - אדום מהבהב
+    const isWarning = pr >= 90;
+    const balanceColorClass = isWarning ? 'text-red-500 animate-pulse' : 'text-white';
+    const progressFillColor = isWarning ? '#ef4444' : '#fff';
+
     document.getElementById('detailTitle').innerText=p.title;
     document.getElementById("projectUsers").innerHTML=(p.collaborators||[]).map(e=>`<div title="${e}" class="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-bold border border-white/20">${e.charAt(0).toUpperCase()}</div>`).join("")+`<button onclick="openPartnerModal()" class="w-7 h-7 rounded-full bg-white/10 border border-white/20 text-[11px] hover:bg-white/20 transition">+</button>`;
-    document.getElementById('balanceCard').innerHTML=`<div class="flex justify-between items-center mb-1 px-2"><span class="text-[10px] opacity-40 uppercase">יתרה לניצול</span><span class="text-[10px] opacity-40 font-bold">תקציב: ₪${b.toLocaleString()}</span></div><div class="text-4xl font-black italic mb-3">₪${(b-s).toLocaleString()}</div><div class="progress-container"><div class="progress-bar"><div class="progress-fill" style="width:${Math.min(pr,100)}%"></div></div></div>`;
+    
+    // עדכון כרטיס היתרה עם צבעי אזהרה
+    document.getElementById('balanceCard').innerHTML=`
+        <div class="flex justify-between items-center mb-1 px-2">
+            <span class="text-[10px] opacity-40 uppercase">יתרה לניצול</span>
+            <span class="text-[10px] opacity-40 font-bold">תקציב: ₪${b.toLocaleString()}</span>
+        </div>
+        <div class="text-4xl font-black italic mb-3 ${balanceColorClass}">₪${balance.toLocaleString()}</div>
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" style="width:${Math.min(pr,100)}%; background: ${progressFillColor}"></div>
+            </div>
+        </div>`;
+
     document.getElementById('tasksList').innerHTML=(p.tasks||[]).map((t,i)=>`<div class="bg-white/5 p-4 rounded-2xl flex items-center justify-between ${t.done?'task-done':''}"><div class="flex items-center gap-4 flex-1"><input type="checkbox" ${t.done?'checked':''} onchange="toggleTaskDone(${i})" class="w-5 h-5 accent-indigo-500"><div class="flex flex-col"><input type="text" value="${t.name}" oninput="editTaskName(${i},this.value)" class="bg-transparent text-white font-bold outline-none" /><span>₪${Number(t.price).toLocaleString()}</span></div></div><button onclick="deleteTask(${i})" class="text-red-400 opacity-30"><i class="fas fa-trash"></i></button></div>`).join("");
     document.getElementById('mediaGallery').innerHTML=(p.images||[]).map((img,i)=>`<div class="img-container relative"><button onclick="deleteImage(event, ${i})" class="del-img-btn"><i class="fas fa-trash"></i></button><img src="${img}" class="img-thumb cursor-zoom-in" onclick="openLightbox('${img}')"></div>`).join("");
 }
-
 async function handleAuth(t){const e=document.getElementById('emailInput').value.trim(),p=document.getElementById('passInput').value;if(!e||!p)return alert("מלא פרטים");try{if(t==="login")await auth.signInWithEmailAndPassword(e,p);else await auth.createUserWithEmailAndPassword(e,p);}catch(err){alert(err.message)}}
 function goHome(){isDashboard=isGantt=false;document.getElementById('dashboardView').classList.add('hidden');document.getElementById('ganttView').classList.add('hidden');document.getElementById('projectsView').classList.remove('hidden')}
 function toggleView(){isDashboard=!isDashboard;document.getElementById('projectsView').classList.toggle('hidden',isDashboard);document.getElementById('dashboardView').classList.toggle('hidden',!isDashboard);if(isDashboard)renderDashboard()}
