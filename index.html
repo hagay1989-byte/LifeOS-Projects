@@ -266,6 +266,60 @@
         async function saveProject(){ const t = document.getElementById('pTitleInp').value; if(!t) return; await db.collection('family_plans').add({ title: t, category: document.getElementById('pCatInp').value, budget: Number(document.getElementById('pBudgetInp').value) || 0, startDate: document.getElementById('pStartInp').value || "", endDate: document.getElementById('pEndInp').value || "", collaborators: [userEmail], tasks: tempAiTasks, images: [], isArchived: false, createdAt: firebase.firestore.FieldValue.serverTimestamp() }); closeNewProjectModal(); }
         async function generateAIPreview(){ const t=document.getElementById('pTitleInp').value.trim(); if(!t) return; const b=document.getElementById('aiBtn'); b.disabled=true; b.innerHTML="ה-AI מתכנן..."; try { const g = firebase.app().functions("us-central1").httpsCallable("generateAIPlan"); const r = await g({ title: t, category: document.getElementById('pCatInp').value, budgetLevel: document.getElementById('budgetLevel').value }); tempAiTasks = (r.data.tasks || []).map(x => ({ name: x.title || x.name, price: Number(x.price) || 0, done: false })); renderAiPreviewList(); document.getElementById('aiPreviewArea').classList.remove('hidden'); document.getElementById('pBudgetInp').value = tempAiTasks.reduce((s, x) => s + x.price, 0); } catch(err){ alert("AI Error"); } finally { b.disabled=false; b.innerHTML='תכנן לי ב-AI ✨'; } }
         function renderAiPreviewList(){ const c=document.getElementById('previewTasksContainer'); let t=0; c.innerHTML=tempAiTasks.map((x,i)=>{t+=x.price;return`<div class="bg-white/5 p-3 rounded-xl mb-2 flex items-center justify-between"><span>${escapeHTML(x.name)}</span><b>₪${x.price.toLocaleString()}</b></div>`}).join(""); document.getElementById('totalLabel').innerText=`₪${t.toLocaleString()}`; }
-    </script>
+async function savePartner() {
+    const input = document.getElementById('partnerEmail');
+    const email = input.value.trim().toLowerCase();
+    
+    if(!email || !currentProjectId) return alert("אנא הזן מייל תקין");
+    
+    try {
+        const p = projects.find(x => x.id === currentProjectId);
+        if(!p) return;
+        
+        let collaborators = [...(p.collaborators || [])];
+        
+        if(!collaborators.includes(email)) {
+            collaborators.push(email); 
+            
+            // עדכון ה-Database בזמן אמת
+            await db.collection('family_plans').doc(currentProjectId).update({
+                collaborators: collaborators
+            });
+            
+            alert(`הפרויקט שותף בהצלחה עם ${email}!`);
+            input.value = "";
+            closePartnerModal();
+        } else {
+            alert("המשתמש כבר מוגדר כשותף בפרויקט זה.");
+        }
+    } catch(err) {
+        console.error("Error adding partner:", err);
+        alert("שגיאה בהוספת שותף. וודא שיש לך חיבור יציב.");
+    }
+}
+
+// שליחת הודעה בוואטסאפ לשותף החדש
+async function invitePartnerViaWhatsApp() {
+    const email = document.getElementById('partnerEmail').value.trim().toLowerCase();
+    const phoneInput = document.getElementById('partnerPhone').value.trim();
+    const phone = phoneInput.replace(/\D/g, ''); 
+    
+    if(!email) return alert("אנא הזן מייל כדי שהשותף יוכל להיכנס");
+    if(!currentProjectId) return;
+
+    const p = projects.find(x => x.id === currentProjectId);
+    const msg = encodeURIComponent(
+        `היי! צירפתי אותך לפרויקט "${p.title}" ב-LifeOS. 🤝\n` +
+        `תירשם כאן עם המייל שלך (${email}) כדי שתוכל לראות הכל בלייב:\n${window.location.origin}`
+    );
+
+    let url = "https://wa.me/";
+    if (phone) {
+        const formattedPhone = phone.startsWith('0') ? '972' + phone.substring(1) : phone;
+        url += formattedPhone;
+    }
+    window.open(`${url}?text=${msg}`, '_blank');
+}    
+</script>
 </body>
 </html>
