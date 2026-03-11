@@ -15,49 +15,122 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-functions.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <style>
+  <style>
+        /* --- גאנט רספונסיבי למובייל --- */
+        .gantt-wrapper { 
+            overflow-x: auto; 
+            background: rgba(255,255,255,0.03); 
+            border-radius: 24px; 
+            border: 1px solid rgba(255,255,255,0.08);
+            -webkit-overflow-scrolling: touch; /* גלילה חלקה באייפון */
+        }
+        
+        .gantt-table { 
+            display: grid; 
+            /* העמודה הראשונה (שמות) תופסת 100px והשאר מתחלקים */
+            grid-template-columns: 100px repeat(12, 1fr); 
+            min-width: 850px; /* מבטיח שהחודשים לא יתכווצו מדי */
+        }
+        
+        .gantt-header-cell { 
+            padding: 12px; 
+            font-size: 10px; 
+            font-weight: 900; 
+            text-align: center; 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            border-left: 1px solid rgba(255,255,255,0.05); 
+            color: #818cf8; 
+        }
+
+        /* הופך את שמות הפרויקטים ל"דביקים" - נשארים בצד כשגוללים */
+        .gantt-project-name { 
+            padding: 15px; 
+            font-size: 12px; 
+            font-weight: 700; 
+            border-left: 1px solid rgba(255,255,255,0.1); 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            position: sticky;
+            right: 0;
+            background: #161b33; /* צבע רקע כדי שלא יראו את הגאנט מתחת לשם */
+            z-index: 20;
+        }
+
+        .gantt-row { display: contents; }
+        .gantt-cell { position: relative; border-bottom: 1px solid rgba(255,255,255,0.05); border-left: 1px solid rgba(255,255,255,0.05); height: 50px; }
+        
+        .gantt-bar { 
+            position: absolute; 
+            top: 12px; 
+            bottom: 12px; 
+            background: linear-gradient(90deg, #6366f1, #a855f7); 
+            border-radius: 8px; 
+            z-index: 10; 
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); 
+        }
+
+        /* --- אנימציות וכללי --- */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes skeleton { 0% { opacity: 0.3; } 50% { opacity: 0.7; } 100% { opacity: 0.3; } }
         
         .animate-fadeIn { animation: fadeIn 0.3s ease forwards; }
         .skeleton { animation: skeleton 1.5s infinite ease-in-out; background: rgba(255,255,255,0.05); border-radius: 16px; }
-        
 
-.modal-overlay { 
-    position: fixed; 
-    inset: 0; 
-    display: flex; 
-    align-items: flex-start; 
-    justify-content: center; 
-    background: rgba(10, 15, 28, 0.96); 
-    backdrop-filter: blur(22px); 
-    z-index: 1000; 
-    padding: 20px; 
-    overflow-y: auto; 
-    animation: fadeIn .25s ease;
-}
+        .modal-overlay { 
+            position: fixed; 
+            inset: 0; 
+            display: flex; 
+            align-items: flex-start; 
+            justify-content: center; 
+            background: rgba(10, 15, 28, 0.96); 
+            backdrop-filter: blur(22px); 
+            z-index: 1000; 
+            padding: 20px; 
+            overflow-y: auto; 
+            animation: fadeIn .25s ease;
+        }
 
-#partnerModal {
-    z-index: 5000 !important;
-}
+        #partnerModal { z-index: 5000 !important; }
+        #imageLightbox { z-index: 6000 !important; }
 
-#imageLightbox {
-    z-index: 6000 !important;
-}
+        body { 
+            font-family: 'Heebo', sans-serif; 
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a 80%); 
+            background-attachment: fixed; 
+            color: white; 
+            text-align: right; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding-top: env(safe-area-inset-top); 
+        }
 
-        body { font-family: 'Heebo', sans-serif; background: radial-gradient(circle at top right, #1e1b4b, #0f172a 80%); background-attachment: fixed; color: white; text-align: right; min-height: 100vh; margin: 0; padding-top: env(safe-area-inset-top); }
         .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 36px; }
         .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 28px; transition: all .25s ease; cursor: pointer; }
-        input, select { background: rgba(255, 255, 255, 0.92) !important; border-radius: 16px !important; color: #0f172a !important; padding: 12px !important; width: 100%; font-size: 16px !important; border: none !important; transition: all 0.2s ease; }
+        
+        input, select { 
+            background: rgba(255, 255, 255, 0.92) !important; 
+            border-radius: 16px !important; 
+            color: #0f172a !important; 
+            padding: 12px !important; 
+            width: 100%; 
+            font-size: 16px !important; 
+            border: none !important; 
+            transition: all 0.2s ease; 
+        }
+
         .progress-bar { background: rgba(255,255,255,0.1); height: 8px; border-radius: 10px; overflow: hidden; }
         .progress-fill { height: 100%; transition: width .8s ease; background: #fff; }
         .nav-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 16px; color: white; transition: .2s; }
+        
         .img-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
         @media(min-width:768px) { .img-grid { grid-template-columns: repeat(3, 1fr); } }
+        
         .img-container { position: relative; border-radius: 18px; overflow: hidden; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); transition: all .25s ease; }
         .img-thumb { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
         .del-img-btn { position: absolute; top: 6px; left: 6px; width: 26px; height: 26px; border-radius: 10px; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; font-size: 11px; color: #ff6b6b; opacity: 0; transition: all .2s ease; }
         .img-container:hover .del-img-btn { opacity: 1; }
+        
         ::-webkit-scrollbar { display: none; }
         #tasksList input { background: transparent !important; color: white !important; font-weight: 700; padding: 0 !important; border: none !important; }
     </style>
@@ -87,33 +160,85 @@
         </div>
     </div>
 </div>
-    <div id="authScreen" class="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950 p-6 text-center">
-        <div class="glass-panel p-10 w-full max-w-sm">
-            <h1 class="text-4xl font-black mb-10 italic">LifeOS</h1>
-            <input type="email" id="emailInput" placeholder="אימייל" class="mb-3 ltr text-left">
-            <input type="password" id="passInput" placeholder="סיסמה" class="mb-8 ltr text-left">
-            <button onclick="handleAuth('login')" class="w-full py-4 bg-white text-slate-900 font-black rounded-2xl mb-3">כניסה</button>
-            <button onclick="handleAuth('signup')" class="w-full py-4 border border-white/20 text-white font-bold rounded-2xl text-sm">יצירת משתמש</button>
-        </div>
-    </div>
 
-    <div id="appScreen" class="hidden glass-panel w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden relative shadow-2xl">
-        <header class="p-6 flex justify-between items-center border-b border-white/5">
-            <div class="flex gap-3 items-center">
-                <h1 onclick="goHome()" class="text-2xl font-black italic cursor-pointer">LifeOS</h1>
+<div id="authScreen" class="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950 p-6 text-center">
+    <div class="glass-panel p-10 w-full max-w-sm">
+        <h1 class="text-4xl font-black mb-10 italic">LifeOS</h1>
+        
+        <input type="email" id="emailInput" placeholder="אימייל" class="mb-3 ltr text-left">
+        <input type="password" id="passInput" placeholder="סיסמה" class="mb-1 ltr text-left">
+        
+        <div class="text-right mb-8">
+            <span onclick="handleForgotPassword()" class="text-[10px] opacity-40 hover:opacity-100 cursor-pointer underline transition-opacity pr-1">שכחתי סיסמה</span>
+        </div>
+
+        <button onclick="handleAuth('login')" class="w-full py-4 bg-white text-slate-900 font-black rounded-2xl mb-3 active:scale-95 transition-transform">כניסה</button>
+        <button onclick="openSignupModal()" class="w-full py-4 border border-white/20 text-white font-bold rounded-2xl text-sm active:scale-95 transition-transform">יצירת משתמש חדש</button>
+    </div>
+</div>
+
+<div id="signupModal" class="hidden fixed inset-0 z-[3000] flex items-center justify-center bg-black/80 backdrop-blur-md p-6 text-center">
+    <div class="glass-panel p-10 w-full max-w-sm relative">
+        <button onclick="closeSignupModal()" class="absolute top-4 left-4 text-white/40 hover:text-white transition-colors">
+            <i class="fas fa-times"></i>
+        </button>
+        <h2 class="text-3xl font-black mb-8 italic">הרשמה ל-LifeOS</h2>
+        <p class="text-[11px] opacity-50 mb-6">בחר אימייל וסיסמה כדי להתחיל</p>
+        
+        <input type="email" id="newEmailInput" placeholder="אימייל חדש" class="mb-3 ltr text-left w-full">
+        <input type="password" id="newPassInput" placeholder="סיסמה (מינימום 6 תווים)" class="mb-8 ltr text-left w-full">
+        
+        <button onclick="handleSignup()" class="w-full py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black rounded-2xl shadow-lg active:scale-95 transition-transform">
+            צור חשבון עכשיו
+        </button>
+    </div>
+</div>
+
+<div id="sideMenu" class="fixed inset-y-0 right-0 w-72 bg-slate-950/95 backdrop-blur-2xl z-[5000] shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out border-r border-white/10">
+    <div class="p-8 flex flex-col h-full">
+        <div class="flex justify-between items-center mb-12">
+            <span class="text-xl font-black italic italic">תפריט</span>
+            <button onclick="toggleSideMenu()" class="text-white/40 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        
+        <nav class="flex flex-col gap-5">
+            <button onclick="goHome(); toggleSideMenu()" class="flex items-center gap-4 py-3 px-4 rounded-2xl hover:bg-white/5 transition-all text-right font-bold"><i class="fas fa-home text-indigo-400 w-6"></i> בית</button>
+            <button onclick="toggleGantt(); toggleSideMenu()" class="flex items-center gap-4 py-3 px-4 rounded-2xl hover:bg-white/5 transition-all text-right font-bold"><i class="fas fa-calendar-alt text-indigo-400 w-6"></i> גאנט</button>
+            <button onclick="toggleView(); toggleSideMenu()" class="flex items-center gap-4 py-3 px-4 rounded-2xl hover:bg-white/5 transition-all text-right font-bold"><i class="fas fa-chart-pie text-indigo-400 w-6"></i> דשבורד</button>
+            <button onclick="openPartnerModal(); toggleSideMenu()" class="flex items-center gap-4 py-3 px-4 rounded-2xl hover:bg-white/5 transition-all text-right font-bold"><i class="fas fa-user-plus text-purple-400 w-6"></i> צרף שותף</button>
+            <button onclick="toggleArchiveView(); toggleSideMenu()" class="flex items-center gap-4 py-3 px-4 rounded-2xl hover:bg-white/5 transition-all text-right font-bold"><i class="fas fa-archive text-orange-400 w-6"></i> ארכיון</button>
+            
+            <div class="h-[1px] bg-white/5 my-4"></div>
+            
+            <button onclick="auth.signOut()" class="flex items-center gap-4 py-3 px-4 rounded-2xl hover:bg-red-500/10 transition-all text-right font-bold text-red-400"><i class="fas fa-sign-out-alt w-6"></i> התנתקות</button>
+        </nav>
+    </div>
+</div>
+
+<div id="appScreen" class="hidden glass-panel w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden relative shadow-2xl">
+    <header class="p-5 flex justify-between items-center border-b border-white/5 sticky top-0 bg-slate-900/20 backdrop-blur-md z-[1000]">
+        <div class="flex gap-3 items-center">
+            <h1 onclick="goHome()" class="text-2xl font-black italic cursor-pointer tracking-tighter">LifeOS</h1>
+            
+            <div class="hidden md:flex gap-2">
                 <button onclick="toggleGantt()" class="nav-btn"><i class="fas fa-calendar-alt"></i></button>
                 <button onclick="openPartnerModal()" class="nav-btn text-purple-400"><i class="fas fa-fingerprint"></i></button>
             </div>
-            <div class="flex gap-2 items-center">
-                <button onclick="openAccessibilityModal()" class="text-white/30 hover:text-white transition-all text-[11px] flex items-center gap-1 bg-white/5 px-2 py-1.5 rounded-lg border border-white/5 mr-1">
-                    <i class="fas fa-universal-access"></i> <span class="hidden md:inline">נגישות</span>
-                </button>
-                <button onclick="toggleArchiveView()" id="archiveBtn" class="px-4 py-2 bg-white/5 rounded-xl text-[10px] font-bold border border-white/10">📦 ארכיון</button>
-                <button onclick="toggleView()" id="viewBtn" class="px-4 py-2 glass-card text-[9px] font-black uppercase">דשבורד</button>
+        </div>
+
+        <div class="flex gap-2 items-center">
+            <div class="hidden md:flex gap-2 items-center">
+                <button onclick="openAccessibilityModal()" class="text-white/30 hover:text-white text-[11px] px-2 py-1.5 rounded-lg border border-white/5"><i class="fas fa-universal-access"></i> נגישות</button>
+                <button onclick="toggleArchiveView()" class="px-4 py-2 bg-white/5 rounded-xl text-[10px] font-bold border border-white/10">📦 ארכיון</button>
+                <button onclick="toggleView()" class="px-4 py-2 glass-card text-[9px] font-black uppercase">דשבורד</button>
                 <button onclick="auth.signOut()" class="text-white/20 p-2"><i class="fas fa-sign-out-alt"></i></button>
             </div>
-        </header>
 
+            <button onclick="toggleSideMenu()" class="p-2 text-xl md:hidden text-indigo-400">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </header>
         <main class="flex-1 overflow-y-auto p-6">
             <div id="aiInsightCard" class="hidden glass-card p-6 border-r-4 border-indigo-500 mb-6 animate-fadeIn">
                 <div class="flex gap-4">
@@ -179,13 +304,30 @@
                     <div class="h-12 w-full skeleton"></div>
                     <div class="h-12 w-full skeleton" style="animation-delay: 0.2s"></div>
                     <div class="h-12 w-full skeleton" style="animation-delay: 0.4s"></div>
-                </div>
+</div>
 
-                <select id="pCatInp"><option value="trip">✈️ טיול</option><option value="event">🎉 אירוע</option><option value="renovation">🏠 שיפוץ</option><option value="general">⚙️ כללי</option></select>
-                <select id="budgetLevel"><option value="economy">💸 חסכוני</option><option value="standard" selected>💰 רגיל</option><option value="premium">✨ פרימיום</option></select>
-                <div class="grid grid-cols-2 gap-3">
-                    <input type="date" id="pStartInp">
-                    <input type="date" id="pEndInp">
+                <select id="pCatInp">
+                    <option value="טיול">✈️ טיול</option>
+                    <option value="אירוע">🎉 אירוע</option>
+                    <option value="שיפוץ">🏠 שיפוץ</option>
+                    <option value="כללי">⚙️ כללי</option>
+                </select>
+
+                <select id="budgetLevel">
+                    <option value="חסכוני">💸 חסכוני</option>
+                    <option value="רגיל" selected>💰 רגיל</option>
+                    <option value="פרימיום">✨ פרימיום</option>
+                </select>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[10px] opacity-40 pr-2 block mb-1">תאריך התחלה</label>
+                        <input type="date" id="pStartInp">
+                    </div>
+                    <div>
+                        <label class="text-[10px] opacity-40 pr-2 block mb-1">תאריך סיום</label>
+                        <input type="date" id="pEndInp">
+                    </div>
                 </div>
                 <button id="aiBtn" onclick="generateAIPreview()" class="w-full py-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-black rounded-2xl shadow-xl transition-all active:scale-95">תכנן לי ב-AI</button>
                 <input type="number" id="pBudgetInp" placeholder="תקציב משוער">
@@ -284,16 +426,103 @@ auth.onAuthStateChanged(u => {
     }
 });
 
-function loadData(){
-    db.collection('family_plans').where('collaborators','array-contains',userEmail).onSnapshot(s => {
-        projects = s.docs.map(d => ({id:d.id, ...d.data()}));
+async function handleAuth(type) {
+    const email = document.getElementById('emailInput').value;
+    const pass = document.getElementById('passInput').value;
+
+    if (!email || !pass) {
+        alert("נא להזין אימייל וסיסמה");
+        return;
+    }
+
+    try {
+        if (type === 'login') {
+            await auth.signInWithEmailAndPassword(email, pass);
+            // ברגע שזה מצליח, ה-onAuthStateChanged יזהה ויעביר אותך למסך הראשי
+        }
+    } catch (e) {
+        if (e.code === 'auth/wrong-password') {
+            alert("סיסמה שגויה, נסה שוב.");
+        } else if (e.code === 'auth/user-not-found') {
+            alert("לא נמצא משתמש עם האימייל הזה.");
+        } else {
+            alert("שגיאה בהתחברות: " + e.message);
+        }
+    }
+}
+
+// --- פונקציות ניהול משתמשים והרשמה ---
+
+function openSignupModal() { 
+    document.getElementById('signupModal').classList.remove('hidden'); 
+}
+
+function closeSignupModal() { 
+    document.getElementById('signupModal').classList.add('hidden'); 
+}
+
+async function handleSignup() {
+    const email = document.getElementById('newEmailInput').value;
+    const pass = document.getElementById('newPassInput').value;
+    
+    if(!email || pass.length < 6) { 
+        alert("נא להזין אימייל תקין וסיסמה בת 6 תווים לפחות"); 
+        return; 
+    }
+    
+    try {
+        await auth.createUserWithEmailAndPassword(email, pass);
+        alert("החשבון נוצר בהצלחה! ברוך הבא");
+        closeSignupModal();
+        
+        document.getElementById('newEmailInput').value = "";
+        document.getElementById('newPassInput').value = "";
+    } catch (e) {
+        if (e.code === 'auth/email-already-in-use') {
+            alert("האימייל הזה כבר רשום במערכת. נסה להתחבר במקום.");
+        } else if (e.code === 'auth/invalid-email') {
+            alert("כתובת האימייל לא תקינה.");
+        } else {
+            alert("שגיאה ביצירת חשבון: " + e.message);
+        }
+    }
+}
+
+async function handleForgotPassword() {
+    const email = document.getElementById('emailInput').value;
+    
+    if (!email) {
+        alert("אנא הזן את כתובת האימייל שלך בשדה האימייל קודם.");
+        return;
+    }
+
+    try {
+        await auth.sendPasswordResetEmail(email);
+        alert("אימייל לאיפוס סיסמה נשלח לכתובת: " + email + "\nבדוק גם בתיקיית הספאם.");
+    } catch (e) {
+        if (e.code === 'auth/user-not-found') {
+            alert("לא נמצא משתמש עם כתובת אימייל זו.");
+        } else if (e.code === 'auth/invalid-email') {
+            alert("כתובת האימייל שהזנת אינה תקינה.");
+        } else {
+            alert("שגיאה בשליחת אימייל לאיפוס: " + e.message);
+        }
+    }
+}
+
+// --- טעינת נתונים ---
+
+function loadData() {
+    db.collection('family_plans')
+      .where('collaborators', 'array-contains', userEmail)
+      .onSnapshot(s => {
+        projects = s.docs.map(d => ({id: d.id, ...d.data()}));
         renderUI();
         if(isDashboard) { renderDashboard(); refreshAIInsights(); }
         if(isGantt) renderGantt();
         if(currentProjectId) renderProjectInfo();
     });
 }
-
 // --- Navigation ---
 function goHome(){isDashboard=isGantt=false; document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.add('hidden')); document.getElementById('dashboardView').classList.add('hidden'); document.getElementById('ganttView').classList.add('hidden'); document.getElementById('projectsView').classList.remove('hidden'); document.getElementById('aiInsightCard').classList.add('hidden');}
 function toggleView(){isDashboard=!isDashboard; document.getElementById('projectsView').classList.toggle('hidden',isDashboard); document.getElementById('dashboardView').classList.toggle('hidden',!isDashboard); if(isDashboard) { renderDashboard(); refreshAIInsights(); } else { document.getElementById('aiInsightCard').classList.add('hidden'); }}
@@ -325,39 +554,53 @@ async function refreshAIInsights() {
     } catch(e) { console.error("Insight error"); }
 }
 
-// --- Project Rendering ---
 function renderUI() {
     const container = document.getElementById('projectsView');
     if (!container) return;
+    
     const filtered = projects.filter(p => isArchiveView ? p.isArchived : !p.isArchived);
+    
     if (filtered.length === 0 && !isArchiveView) {
-container.className = "relative min-h-[60vh] w-full flex flex-col items-center justify-center";
+        // עיצוב רספונסיבי מושלם למובייל
+        container.className = "relative min-h-[70vh] w-full flex flex-col items-center justify-center px-6 text-center animate-fadeIn";
         container.innerHTML = `
-            <div class="flex gap-3 mb-8 animate-bounce">
-                <div class="bg-indigo-600 text-[10px] font-bold px-4 py-2 rounded-full border border-white/20 shadow-lg">
-                     גרפים <i class="fas fa-chart-pie mr-1"></i>
+            <div class="absolute w-64 h-64 bg-indigo-600/10 blur-[100px] rounded-full -z-10"></div>
+            
+            <div class="flex flex-col items-center group">
+                <div class="w-24 h-24 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-full flex items-center justify-center mb-8 border border-white/10 shadow-2xl animate-pulse">
+                    <i class="fas fa-wand-magic-sparkles text-3xl text-indigo-400"></i>
                 </div>
-                <div class="bg-purple-600 text-[10px] font-bold px-4 py-2 rounded-full border border-white/20 shadow-lg">
-                    לוח זמנים <i class="fas fa-calendar-alt mr-1"></i>
-                </div>
-            </div>
-            <div class="flex flex-col items-center justify-center text-center animate-fadeIn">
-                <div class="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
-                    <i class="fas fa-wand-magic-sparkles text-2xl text-indigo-400"></i>
-                </div>
-                <h2 class="text-3xl font-black italic">LifeOS מוכנה.</h2>
-                <p class="opacity-40 text-sm mt-3 max-w-[250px] leading-relaxed">
-                    המערכת ריקה כרגע. לחץ על ה- <span class="text-white font-bold">+</span> למטה כדי לתכנן את הפרויקט הראשון שלך ב-AI!
+                
+                <h2 class="text-4xl font-black italic tracking-tighter mb-4">LifeOS</h2>
+                <p class="text-sm opacity-40 max-w-[260px] leading-relaxed mb-10">
+                    המערכת ריקה. תן ל-AI לתכנן לך את הפרויקט הבא שלך בקיצור דרך.
                 </p>
+                
+                <div class="flex flex-col items-center gap-3 opacity-20">
+                    <span class="text-[10px] font-bold uppercase tracking-widest">לחץ כאן להתחלה</span>
+                    <i class="fas fa-chevron-down animate-bounce"></i>
+                </div>
             </div>
         `;
         return;
     }
+
+    // תצוגת הגריד כשיש פרויקטים
     container.className = "grid grid-cols-1 md:grid-cols-2 gap-6 pb-24 w-full";
     container.innerHTML = filtered.map(p => {
-        const b = Number(p.budget || 0), s = (p.tasks || []).reduce((acc, t) => t.done ? acc + Number(t.price || 0) : acc, 0);
+        const b = Number(p.budget || 0), 
+              s = (p.tasks || []).reduce((acc, t) => t.done ? acc + Number(t.price || 0) : acc, 0);
         const pr = b > 0 ? Math.min(Math.round((s / b) * 100), 100) : 0;
-        return `<div class="glass-card p-8 group hover:scale-[1.02] transition-all active:scale-95" onclick="openProjectDetail('${p.id}')"><div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-black italic group-hover:text-indigo-400 transition-colors">${escapeHTML(p.title)}</h3><span class="text-xs opacity-40 font-bold">₪${(b - s).toLocaleString()} יתרה</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pr}%"></div></div></div>`;
+        return `
+            <div class="glass-card p-8 group hover:scale-[1.02] transition-all active:scale-95" onclick="openProjectDetail('${p.id}')">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-black italic group-hover:text-indigo-400 transition-colors">${escapeHTML(p.title)}</h3>
+                    <span class="text-xs opacity-40 font-bold">₪${(b - s).toLocaleString()} יתרה</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width:${pr}%"></div>
+                </div>
+            </div>`;
     }).join('');
 }
 
@@ -529,11 +772,53 @@ function renderDashboard() {
     });
 }
 
-function renderGantt(){
-    document.getElementById('ganttRows').innerHTML = projects.filter(p=>!p.isArchived).map(p=>{
-        const s=(p.tasks||[]).reduce((a,t)=>t.done?a+Number(t.price||0):a,0), pr=p.budget>0?Math.min(Math.round((s/p.budget)*100),100):0;
-        return `<div class="p-4 bg-white/5 rounded-2xl mb-3"><div class="flex justify-between mb-2"><span class="font-bold">${escapeHTML(p.title)}</span><span class="text-[10px] opacity-50">${p.startDate || '---'}</span></div><div class="progress-bar"><div class="progress-fill" style="width: ${pr}%"></div></div></div>`;
-    }).join("");
+function renderGantt() {
+    const container = document.getElementById('ganttRows');
+    const activeProjects = projects.filter(p => !p.isArchived);
+    const months = ["ינו", "פבר", "מרץ", "אפר", "מאי", "יוני", "יולי", "אוג", "ספט", "אוק", "נוב", "דצמ"];
+
+    if (activeProjects.length === 0) {
+        container.innerHTML = `<div class="text-center opacity-20 py-10 italic">אין פרויקטים להצגה ביומן</div>`;
+        return;
+    }
+
+    // עטיפה של הגאנט בתוך ה-wrapper שמאפשר גלילה
+    let html = `<div class="gantt-wrapper animate-fadeIn"><div class="gantt-table">`;
+    
+    // שורת כותרת חודשים (עם עמודה ראשונה דביקה)
+    html += `<div class="gantt-header-cell" style="position: sticky; right: 0; background: #161b33; z-index: 30;">פרויקט</div>`;
+    months.forEach(m => {
+        html += `<div class="gantt-header-cell bg-white/5">${m}</div>`;
+    });
+
+    activeProjects.forEach(p => {
+        // שורת פרויקט - השם דביק לימין
+        html += `<div class="gantt-project-name shadow-lg">${escapeHTML(p.name || p.title)}</div>`;
+        
+        // יצירת 12 תאים (חודשים) לכל פרויקט
+        for (let m = 0; m < 12; m++) {
+            html += `<div class="gantt-cell">`;
+            
+            if (p.startDate && p.endDate) {
+                const startM = new Date(p.startDate).getMonth();
+                const endM = new Date(p.endDate).getMonth();
+                
+                // בדיקה אם החודש הנוכחי הוא חודש ההתחלה
+                if (m === startM) {
+                    const duration = (endM - startM) + 1;
+                    // ציור הבר - הוא נמתח על פני מספר תאים בזכות ה-calc
+                    html += `
+                        <div class="gantt-bar" style="width: calc(${duration * 100}% - 10px); right: 5px;">
+                            <span class="absolute -top-5 right-1 text-[8px] opacity-40 font-light">${p.category || ''}</span>
+                        </div>`;
+                }
+            }
+            html += `</div>`;
+        }
+    });
+
+    html += `</div></div>`;
+    container.innerHTML = html;
 }
 // פונקציות לניהול מודל השותפים
 function openPartnerModal() {
@@ -575,6 +860,13 @@ function exportProjectToExcel() {
     XLSX.utils.book_append_sheet(wb, ws, "LifeOS Plan");
     XLSX.writeFile(wb, `${p.title}_Plan.xlsx`);
 }
+function toggleSideMenu() {
+    const menu = document.getElementById('sideMenu');
+    if (menu) {
+        menu.classList.toggle('translate-x-full');
+    }
+}
+
 </script>
 </body>
 </html>
