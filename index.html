@@ -286,25 +286,37 @@
         </button>
     </div>
 
-    <div id="newProjectModal" class="hidden modal-overlay">
-        <div class="glass-panel p-8 w-full max-w-md mt-4 relative">
-            <button onclick="closeNewProjectModal()" class="absolute top-4 left-4 text-white/40 p-2 hover:text-white transition-colors"><i class="fas fa-times"></i></button>
-            <h3 class="text-xl font-black mb-6 text-center italic">מה נתכנן היום? ✨</h3>
-            <div class="space-y-4">
-                <input type="text" id="pTitleInp" placeholder="לדוגמה: טיול ליוון, שיפוץ מטבח..." class="text-center" oninput="this.classList.remove('ring-2','ring-red-500')">
-                <div id="aiPreviewArea" class="hidden">
-                    <div class="flex justify-between items-center mb-3">
-                        <span class="text-indigo-400 font-bold text-xs">✨ הצעה מה-AI</span>
-                        <button onclick="recalculateAI()" class="text-[10px] bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-lg hover:bg-indigo-500/30 transition-all">חשב מחדש</button>
+    <<div id="newProjectModal" class="hidden modal-overlay">
+    <div class="glass-panel p-8 w-full max-w-md mt-4 relative">
+        <button onclick="closeNewProjectModal()" class="absolute top-4 left-4 text-white/40 p-2 hover:text-white transition-colors"><i class="fas fa-times"></i></button>
+        <h3 class="text-xl font-black mb-6 text-center italic">מה נתכנן היום? ✨</h3>
+        <div class="space-y-4">
+            <input type="text" id="pTitleInp" placeholder="לדוגמה: טיול ליוון, שיפוץ מטבח..." class="text-center" oninput="this.classList.remove('ring-2','ring-red-500')">
+            
+            <div id="aiPreviewArea" class="hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-indigo-400 font-bold text-xs">✨ הצעה מה-AI</span>
+                    <div class="flex gap-2">
+                        <button onclick="addManualTaskToPreview()" class="text-[10px] bg-white/10 text-white/80 px-2 py-1 rounded-lg hover:bg-white/20 transition-all border border-white/5">
+                            <i class="fas fa-plus ml-1"></i>הוסף משימה
+                        </button>
+                        <button onclick="recalculateAI()" class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-lg hover:bg-indigo-500/30 transition-all">
+                            <i class="fas fa-sync-alt ml-1"></i>חשב מחדש
+                        </button>
                     </div>
-                    <div id="previewTasksContainer" class="max-h-[300px] overflow-y-auto space-y-2 pr-2"></div>
-                    <div class="pt-3 border-t border-white/10 text-xs font-bold text-indigo-400">סה״כ: <span id="totalLabel">₪0</span></div>
                 </div>
-                <div id="aiSkeleton" class="hidden space-y-3">
-                    <div class="h-12 w-full skeleton"></div>
-                    <div class="h-12 w-full skeleton" style="animation-delay: 0.2s"></div>
-                    <div class="h-12 w-full skeleton" style="animation-delay: 0.4s"></div>
-</div>
+                <div id="previewTasksContainer" class="max-h-[300px] overflow-y-auto space-y-2 pr-2"></div>
+                <div class="pt-3 border-t border-white/10 text-xs font-bold text-indigo-400 flex justify-between">
+                    <span>סה״כ משוער:</span>
+                    <span id="totalLabel">₪0</span>
+                </div>
+            </div>
+
+            <div id="aiSkeleton" class="hidden space-y-3">
+                <div class="h-12 w-full skeleton"></div>
+                <div class="h-12 w-full skeleton" style="animation-delay: 0.2s"></div>
+                <div class="h-12 w-full skeleton" style="animation-delay: 0.4s"></div>
+            </div>
 
                 <select id="pCatInp">
                     <option value="טיול">✈️ טיול</option>
@@ -619,59 +631,99 @@ function renderProjectInfo() {
 
 // --- AI Core & Skeleton UI ---
 async function generateAIPreview(){
-    const t=document.getElementById('pTitleInp').value.trim(); 
+    const t = document.getElementById('pTitleInp').value.trim(); 
     if(!t) { document.getElementById('pTitleInp').classList.add("ring-2","ring-red-500"); return; }
     
-    // UI: Hide inputs, show skeleton
     document.getElementById('aiSkeleton').classList.remove('hidden');
-    document.getElementById('aiBtn').disabled=true;
-    document.getElementById('aiBtn').innerText="ה-AI בונה את הפרויקט...";
+    document.getElementById('aiBtn').disabled = true;
+    document.getElementById('aiBtn').innerText = "ה-AI בונה את הפרויקט...";
 
     try {
         const g = firebase.app().functions("us-central1").httpsCallable("generateAIPlan");
-        const r = await g({ title: t, category: document.getElementById('pCatInp').value, budgetLevel: document.getElementById('budgetLevel').value, startDate: document.getElementById('pStartInp').value, endDate: document.getElementById('pEndInp').value });
-        tempAiTasks = (r.data.tasks || []).map(x => ({ name: x.title || x.name, price: Number(x.price) || 0, done: false }));
+        
+        // כאן התיקון: אנחנו שולחים גם את start ו-end מה-HTML
+        const r = await g({ 
+            title: t, 
+            category: document.getElementById('pCatInp').value, 
+            budgetLevel: document.getElementById('budgetLevel').value, 
+            startDate: document.getElementById('pStartInp').value, 
+            endDate: document.getElementById('pEndInp').value 
+        });
+        
+        tempAiTasks = (r.data.tasks || []).map(x => ({ 
+            name: x.title || x.name, 
+            price: Number(x.price) || 0, 
+            done: false 
+        }));
+        
         renderAiPreviewList();
         document.getElementById('aiPreviewArea').classList.remove('hidden');
-        document.getElementById('pBudgetInp').value = tempAiTasks.reduce((s, x) => s + x.price, 0);
-    } catch(err){ alert("שגיאת AI"); } finally { 
+    } catch(err){ 
+        alert("שגיאת AI"); 
+    } finally { 
         document.getElementById('aiSkeleton').classList.add('hidden');
-        document.getElementById('aiBtn').disabled=false; 
-        document.getElementById('aiBtn').innerHTML='שנה תכנון ב-AI'; 
+        document.getElementById('aiBtn').disabled = false; 
+        document.getElementById('aiBtn').innerHTML = 'שנה תכנון ב-AI'; 
     }
 }
+function addManualTaskToPreview() {
+    tempAiTasks.push({ name: "משימה חדשה", price: 0, done: false });
+    renderAiPreviewList();
+    const container = document.getElementById('previewTasksContainer');
+    if(container) container.scrollTop = container.scrollHeight;
+}
 
-function renderAiPreviewList(){
-    const c=document.getElementById('previewTasksContainer'); let t=0;
-    c.innerHTML=tempAiTasks.map((x,i)=>{t+=x.price;return `<div class="bg-white/5 p-3 rounded-xl flex items-center gap-3"><button onclick="tempAiTasks.splice(${i},1);renderAiPreviewList();" class="text-red-400/50 hover:text-red-500 transition-colors"><i class="fas fa-times-circle"></i></button><input type="text" value="${escapeHTML(x.name)}" oninput="tempAiTasks[${i}].name=this.value" class="bg-transparent text-white font-bold flex-1 outline-none" /><div class="font-bold text-indigo-300">₪${x.price.toLocaleString()}</div></div>`}).join("");
-    document.getElementById('totalLabel').innerText=`₪${t.toLocaleString()}`;
+function renderAiPreviewList() {
+    const c = document.getElementById('previewTasksContainer'); 
+    let totalSum = 0;
+    
+    // שים לב לסימן ` (נמצא משמאל למספר 1 במקלדת) - זה לא גרש רגיל!
+    c.innerHTML = tempAiTasks.map((x, i) => {
+        const price = Number(x.price) || 0;
+        totalSum += price;
+        return `
+        <div class="bg-white/5 p-3 rounded-xl flex items-center gap-3 animate-fadeIn">
+            <button onclick="tempAiTasks.splice(${i},1); renderAiPreviewList();" class="text-red-400/50 hover:text-red-500 transition-colors">
+                <i class="fas fa-times-circle"></i>
+            </button>
+            <input type="text" value="${escapeHTML(x.name)}" oninput="tempAiTasks[${i}].name=this.value" class="bg-transparent text-white font-bold flex-1 outline-none text-sm" />
+            <div class="flex items-center bg-white/10 rounded-lg px-2">
+                <span class="text-[10px] opacity-40 ml-1">₪</span>
+                <input type="number" value="${price}" oninput="tempAiTasks[${i}].price=Number(this.value); updateAiTotal();" class="bg-transparent text-indigo-300 font-bold w-20 text-left outline-none text-sm" />
+            </div>
+        </div>`;
+    }).join("");
+    
+    updateAiTotal();
+}
+
+function updateAiTotal() {
+    const t = tempAiTasks.reduce((s, x) => s + (Number(x.price) || 0), 0);
+    const label = document.getElementById('totalLabel');
+    if(label) label.innerText = `₪${t.toLocaleString()}`;
+    document.getElementById('pBudgetInp').value = t;
+}
+
+function updateAiTotal() {
+    const t = tempAiTasks.reduce((s, x) => s + (Number(x.price) || 0), 0);
+    const label = document.getElementById('totalLabel');
+    if(label) label.innerText = `₪${t.toLocaleString()}`;
+    document.getElementById('pBudgetInp').value = t;
 }
 
 async function recalculateAI() {
     if (tempAiTasks.length === 0) return;
     const b = document.querySelector('button[onclick="recalculateAI()"]'), o = b.innerHTML; 
     b.innerHTML = "<i class='fas fa-sync animate-spin'></i>"; b.disabled = true;
-
     try {
-        const container = document.getElementById('previewTasksContainer');
-        const inputs = container.querySelectorAll('input[type="text"]');
-        
-        // עדכון השמות מהמסך ואיפוס מחירים כדי להכריח את ה-AI לחשב מחדש
-        const tasksToSend = tempAiTasks.map((task, i) => {
-            return {
-                name: inputs[i] ? inputs[i].value : task.name,
-                price: 0 // <--- זה הסוד! שולחים 0 כדי שה-AI יבצע "סקר שוק" חדש לפי הטקסט
-            };
-        });
-
         const g = firebase.app().functions("us-central1").httpsCallable("recalculateAIPlan");
         const res = await g({ 
             title: document.getElementById('pTitleInp').value, 
             category: document.getElementById('pCatInp').value, 
-            tasks: tasksToSend, // שולחים את הרשימה המעודכנת עם המחירים המאופסים
+            tasks: tempAiTasks.map(x => ({ name: x.name, price: 0 })), 
             budgetLevel: document.getElementById('budgetLevel').value 
         });
-
+        
         if (res.data && res.data.tasks) {
             tempAiTasks = res.data.tasks.map(t => ({ 
                 name: t.title || t.name, 
@@ -679,7 +731,6 @@ async function recalculateAI() {
                 done: false 
             }));
             renderAiPreviewList();
-            document.getElementById('pBudgetInp').value = tempAiTasks.reduce((s, t) => s + t.price, 0);
         }
     } catch (err) { 
         alert("שגיאת עדכון"); 
@@ -687,8 +738,7 @@ async function recalculateAI() {
         b.innerHTML = o; 
         b.disabled = false; 
     }
-}
-// --- Data & Cloud ---
+}// --- Data & Cloud ---
 async function saveProject(){
     const t=document.getElementById('pTitleInp').value; 
     if(!t) { document.getElementById('pTitleInp').classList.add("ring-2","ring-red-500"); return; }
@@ -870,3 +920,6 @@ function toggleSideMenu() {
 </script>
 </body>
 </html>
+
+
+
