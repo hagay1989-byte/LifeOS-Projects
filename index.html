@@ -133,6 +133,36 @@
         
         ::-webkit-scrollbar { display: none; }
         #tasksList input { background: transparent !important; color: white !important; font-weight: 700; padding: 0 !important; border: none !important; }
+/* תיקון גלילה פלטינום למודלים */
+#projectModal > div, #taskModal > div, .modal-content {
+    max-height: 85vh; /* מגביל גובה כדי שלא יברח מהמסך */
+    overflow-y: auto; /* מוסיף גלילה פנימית */
+    -webkit-overflow-scrolling: touch; /* גלילה חלקה לניידים */
+    padding-bottom: 20px; /* נותן קצת אוויר למטה */
+}
+
+/* הסתרת פס גלילה למראה נקי */
+#projectModal > div::-webkit-scrollbar, #taskModal > div::-webkit-scrollbar {
+    display: none;
+}
+/* עיצוב כפתור גוגל והמפריד במסך הכניסה */
+.google-btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.google-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    transform: translateY(-1px);
+}
+
+.google-btn:active {
+    transform: translateY(0);
+}
+
+/* מוודא שהמפריד "או" נראה נקי */
+.flex-grow.border-t {
+    border-color: rgba(255, 255, 255, 0.1);
+}
     </style>
 </head>
 <body class="p-4 flex justify-center items-start">
@@ -161,23 +191,57 @@
     </div>
 </div>
 
-<div id="authScreen" class="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950 p-6 text-center">
-    <div class="glass-panel p-10 w-full max-w-sm">
-        <h1 class="text-4xl font-black mb-10 italic">LifeOS</h1>
+<div id="authScreen" class="fixed inset-0 bg-slate-950 flex items-center justify-center p-4 z-[100]">
+    <div class="w-full max-w-[400px] bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-[2.5rem] flex flex-col items-center shadow-2xl">
         
-        <input type="email" id="emailInput" placeholder="אימייל" class="mb-3 ltr text-left">
-        <input type="password" id="passInput" placeholder="סיסמה" class="mb-1 ltr text-left">
-        
-        <div class="text-right mb-8">
-            <span onclick="handleForgotPassword()" class="text-[10px] opacity-40 hover:opacity-100 cursor-pointer underline transition-opacity pr-1">שכחתי סיסמה</span>
-        </div>
+        <h1 class="text-4xl font-black text-white italic tracking-tighter mb-2">LifeOS</h1>
+        <h2 class="text-white/50 text-xs mb-8 font-bold uppercase tracking-widest">התחברות למערכת</h2>
 
-        <button onclick="handleAuth('login')" class="w-full py-4 bg-white text-slate-900 font-black rounded-2xl mb-3 active:scale-95 transition-transform">כניסה</button>
-        <button onclick="openSignupModal()" class="w-full py-4 border border-white/20 text-white font-bold rounded-2xl text-sm active:scale-95 transition-transform">יצירת משתמש חדש</button>
+<div class="w-full flex flex-col gap-4 mb-6">
+    
+    <div class="w-full">
+        <input type="email" id="emailInput" 
+               placeholder="אימייל" 
+               class="w-full bg-white border border-white/10 py-4 px-6 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all text-right font-medium" 
+               dir="rtl">
+    </div>
+    
+    <div class="relative w-full">
+        <input type="password" id="passInput" 
+               placeholder="סיסמה" 
+               class="w-full bg-white border border-white/10 py-4 px-6 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all text-right font-medium" 
+               dir="rtl">
+        
+        <button type="button" onclick="togglePassword()" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+            <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        </button>
+    </div>
+    
+    <button class="text-[10px] text-white/40 text-right hover:text-white transition-colors px-2">שכחת סיסמה?</button>
+</div>
+        <div class="w-full flex flex-col gap-3">
+            <button onclick="handleAuth('login')" class="w-full py-4 bg-white text-slate-950 font-black rounded-2xl active:scale-95 transition-transform">
+                כניסה
+            </button>
+
+            <div class="flex items-center my-2">
+                <div class="flex-grow border-t border-white/5"></div>
+                <span class="mx-4 text-[10px] text-white/10 font-bold tracking-widest uppercase">או</span>
+                <div class="flex-grow border-t border-white/5"></div>
+            </div>
+
+            <button type="button" onclick="loginWithGoogle()" class="w-full py-4 bg-white/5 border border-white/10 text-white font-bold rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-all hover:bg-white/10">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google icon">
+                המשך עם Google
+            </button>
+
+            <button onclick="openSignupModal()" class="w-full py-4 text-white/30 text-xs font-medium hover:text-white transition-colors mt-2">
+                יצירת משתמש חדש
+            </button>
+        </div>
     </div>
 </div>
-
-<div id="signupModal" class="hidden fixed inset-0 z-[3000] flex items-center justify-center bg-black/80 backdrop-blur-md p-6 text-center">
+</div></div><div id="signupModal" class="hidden fixed inset-0 z-[3000] flex items-center justify-center bg-black/80 backdrop-blur-md p-6 text-center">
     <div class="glass-panel p-10 w-full max-w-sm relative">
         <button onclick="closeSignupModal()" class="absolute top-4 left-4 text-white/40 hover:text-white transition-colors">
             <i class="fas fa-times"></i>
@@ -438,6 +502,26 @@ auth.onAuthStateChanged(u => {
     }
 });
 
+// פונקציית הכניסה עם גוגל - החדשה שלך!
+async function loginWithGoogle() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    const btn = document.querySelector('.google-btn');
+    const originalText = btn ? btn.innerHTML : "המשך עם Google";
+
+    try {
+        if (btn) btn.innerHTML = "מתחבר..."; // פידבק למשתמש
+        await auth.signInWithPopup(provider);
+        console.log("Welcome to LifeOS!");
+    } catch (e) {
+        console.error("Google Auth Error:", e);
+        if (e.code !== 'auth/cancelled-popup-request' && e.code !== 'auth/popup-closed-by-user') {
+            alert("שגיאה בהתחברות עם גוגל: " + e.message);
+        }
+    } finally {
+        if (btn) btn.innerHTML = originalText;
+    }
+}
+
 async function handleAuth(type) {
     const email = document.getElementById('emailInput').value;
     const pass = document.getElementById('passInput').value;
@@ -450,7 +534,6 @@ async function handleAuth(type) {
     try {
         if (type === 'login') {
             await auth.signInWithEmailAndPassword(email, pass);
-            // ברגע שזה מצליח, ה-onAuthStateChanged יזהה ויעביר אותך למסך הראשי
         }
     } catch (e) {
         if (e.code === 'auth/wrong-password') {
@@ -462,7 +545,22 @@ async function handleAuth(type) {
         }
     }
 }
-
+function togglePassword() {
+    const passInput = document.getElementById('passInput');
+    const eyeIcon = document.getElementById('eyeIcon');
+    
+    if (passInput.type === 'password') {
+        // הופך את הסיסמה לטקסט גלוי
+        passInput.type = 'text';
+        // משנה את צבע האייקון לכהה יותר כדי לסמן שהוא "פעיל"
+        eyeIcon.style.stroke = "#0f172a"; 
+    } else {
+        // מחזיר את הסיסמה לכוכביות
+        passInput.type = 'password';
+        // מחזיר את צבע האייקון לאפור העדין המקורי
+        eyeIcon.style.stroke = "currentColor";
+    }
+}
 // --- פונקציות ניהול משתמשים והרשמה ---
 
 function openSignupModal() { 
