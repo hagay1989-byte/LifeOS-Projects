@@ -163,6 +163,20 @@
 .flex-grow.border-t {
     border-color: rgba(255, 255, 255, 0.1);
 }
+#projectCurrency {
+    background: transparent !important;
+    color: white !important;
+    width: auto !important;
+    padding: 0 5px !important;
+    font-size: 10px !important;
+    border: none !important;
+    cursor: pointer;
+}
+
+#projectCurrency option {
+    background: #11162a !important;
+    color: white !important;
+}
     </style>
 </head>
 <body class="p-4 flex justify-center items-start">
@@ -368,12 +382,18 @@
                         </button>
                     </div>
                 </div>
-                <div id="previewTasksContainer" class="max-h-[300px] overflow-y-auto space-y-2 pr-2"></div>
-                <div class="pt-3 border-t border-white/10 text-xs font-bold text-indigo-400 flex justify-between">
-                    <span>סה״כ משוער:</span>
-                    <span id="totalLabel">₪0</span>
-                </div>
-            </div>
+<div id="previewTasksContainer" class="max-h-[300px] overflow-y-auto space-y-2 pr-2"></div>
+
+<div class="pt-3 border-t border-white/10 text-xs font-bold text-indigo-400 flex justify-between items-start">
+    <span>סה״כ משוער:</span>
+    
+    <div class="text-left">
+        <div id="totalLabel" class="text-white">₪0</div>
+        <div id="subTotalLabel" class="text-[10px] text-indigo-300/70 mt-1 hidden"></div>
+    </div>
+ </div>
+ </div> 
+
 
             <div id="aiSkeleton" class="hidden space-y-3">
                 <div class="h-12 w-full skeleton"></div>
@@ -394,23 +414,40 @@
                     <option value="פרימיום">✨ פרימיום</option>
                 </select>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                     <div>
                         <label class="text-[10px] opacity-40 pr-2 block mb-1">תאריך התחלה</label>
-                        <input type="date" id="pStartInp">
+                        <input type="date" id="pStartInp" class="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-white text-[11px] outline-none">
                     </div>
                     <div>
                         <label class="text-[10px] opacity-40 pr-2 block mb-1">תאריך סיום</label>
-                        <input type="date" id="pEndInp">
+                        <input type="date" id="pEndInp" class="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-white text-[11px] outline-none">
                     </div>
                 </div>
-                <button id="aiBtn" onclick="generateAIPreview()" class="w-full py-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-black rounded-2xl shadow-xl transition-all active:scale-95">תכנן לי ב-AI</button>
-                <input type="number" id="pBudgetInp" placeholder="תקציב משוער">
-                <button onclick="saveProject()" class="w-full py-4 bg-white text-black font-black rounded-2xl shadow-xl active:scale-95 transition-transform">שמור פרויקט</button>
+
+      <div class="flex justify-center w-full mb-3">
+    <div class="inline-flex items-center bg-white/[0.03] border border-white/10 rounded-full px-2.5 py-0.5 hover:bg-white/[0.08] transition-all">
+        <div class="w-1 h-1 rounded-full bg-indigo-500/60 ml-1.5"></div>
+        <span class="text-[8px] text-white/30 font-bold ml-1.5 uppercase tracking-widest">מטבע</span>
+        <select id="projectCurrency" class="bg-transparent text-white text-[10px] font-black outline-none cursor-pointer border-none p-0 focus:ring-0">
+            <option value="₪" class="text-black">₪ - שקל</option>
+            <option value="$" class="text-black">$ - דולר</option>
+            <option value="€" class="text-black">€ - אירו</option>
+            <option value="฿" class="text-black">฿ - באט</option>
+        </select>
+        <input type="hidden" id="projectExchangeRate" value="1.000">
+    </div>
+</div>
+
+                <button id="aiBtn" onclick="generateAIPreview()" class="w-full py-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-black rounded-2xl shadow-xl transition-all active:scale-95 mb-4">תכנן לי ב-AI</button>
+                
+                <div class="space-y-3">
+                    <input type="number" id="pBudgetInp" placeholder="תקציב משוער" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none text-center font-bold">
+                    <button onclick="saveProject()" class="w-full py-4 bg-white text-black font-black rounded-2xl shadow-xl active:scale-95 transition-transform">שמור פרויקט</button>
+                </div>
             </div>
         </div>
     </div>
-
     <div id="projectDetailModal" class="hidden modal-overlay text-right">
         <div class="glass-panel p-8 w-full max-w-2xl mt-4 relative mb-20">
             <button onclick="closeProjectDetail()" class="absolute top-4 left-4 text-white/40 p-2"><i class="fas fa-times"></i></button>
@@ -649,18 +686,11 @@ function closePartnerModal() { document.getElementById('partnerModal').classList
 
 // --- AI Insights Assistant ---
 async function refreshAIInsights() {
-    if (projects.length === 0) return;
-    const txt = document.getElementById('aiInsightText');
+    // השתקנו את הפונקציה הזו זמנית כדי למנוע שגיאות 404
+    // כי היא לא קיימת כרגע בשרת (index.js)
+    console.log("AI Insights currently disabled to prevent 404 errors.");
     const card = document.getElementById('aiInsightCard');
-    
-    try {
-        const fn = firebase.app().functions("us-central1").httpsCallable("getGlobalInsights");
-        const res = await fn({ projectData: projects.slice(0,5).map(p => ({ title: p.title, budget: p.budget, spent: (p.tasks||[]).reduce((s,t)=>t.done?s+t.price:s, 0) })) });
-        if(res.data && res.data.insight) {
-            txt.innerText = res.data.insight;
-            card.classList.remove('hidden');
-        }
-    } catch(e) { console.error("Insight error"); }
+    if (card) card.classList.add('hidden');
 }
 
 function renderUI() {
@@ -727,32 +757,33 @@ function renderProjectInfo() {
 }
 
 // --- AI Core & Skeleton UI ---
+
 async function generateAIPreview(){
     const t = document.getElementById('pTitleInp').value.trim(); 
     if(!t) { document.getElementById('pTitleInp').classList.add("ring-2","ring-red-500"); return; }
+    
+    const selectedCurrency = document.getElementById('projectCurrency').value;
     
     document.getElementById('aiSkeleton').classList.remove('hidden');
     document.getElementById('aiBtn').disabled = true;
     document.getElementById('aiBtn').innerText = "ה-AI בונה את הפרויקט...";
 
     try {
-        const g = firebase.app().functions("us-central1").httpsCallable("generateAIPlan");
-        
-        // כאן התיקון: אנחנו שולחים גם את start ו-end מה-HTML
+const g = firebase.app().functions("me-west1").httpsCallable("generatePlanV21");
         const r = await g({ 
             title: t, 
             category: document.getElementById('pCatInp').value, 
             budgetLevel: document.getElementById('budgetLevel').value, 
             startDate: document.getElementById('pStartInp').value, 
-            endDate: document.getElementById('pEndInp').value 
+            endDate: document.getElementById('pEndInp').value,
+            currency: selectedCurrency
         });
         
         tempAiTasks = (r.data.tasks || []).map(x => ({ 
             name: x.title || x.name, 
             price: Number(x.price) || 0, 
             done: false 
-        }));
-        
+        }));        
         renderAiPreviewList();
         document.getElementById('aiPreviewArea').classList.remove('hidden');
     } catch(err){ 
@@ -763,6 +794,7 @@ async function generateAIPreview(){
         document.getElementById('aiBtn').innerHTML = 'שנה תכנון ב-AI'; 
     }
 }
+
 function addManualTaskToPreview() {
     tempAiTasks.push({ name: "משימה חדשה", price: 0, done: false });
     renderAiPreviewList();
@@ -772,12 +804,10 @@ function addManualTaskToPreview() {
 
 function renderAiPreviewList() {
     const c = document.getElementById('previewTasksContainer'); 
-    let totalSum = 0;
+    if(!c) return;
     
-    // שים לב לסימן ` (נמצא משמאל למספר 1 במקלדת) - זה לא גרש רגיל!
     c.innerHTML = tempAiTasks.map((x, i) => {
         const price = Number(x.price) || 0;
-        totalSum += price;
         return `
         <div class="bg-white/5 p-3 rounded-xl flex items-center gap-3 animate-fadeIn">
             <button onclick="tempAiTasks.splice(${i},1); renderAiPreviewList();" class="text-red-400/50 hover:text-red-500 transition-colors">
@@ -795,30 +825,49 @@ function renderAiPreviewList() {
 }
 
 function updateAiTotal() {
-    const t = tempAiTasks.reduce((s, x) => s + (Number(x.price) || 0), 0);
+    // 1. חישוב סה"כ בשקלים (הבסיס שלנו)
+    const totalNIS = tempAiTasks.reduce((s, x) => s + (Number(x.price) || 0), 0);
+    const selectedCurrency = document.getElementById('projectCurrency').value;
+    
+    // 2. עדכון התווית הראשית בשקלים
     const label = document.getElementById('totalLabel');
-    if(label) label.innerText = `₪${t.toLocaleString()}`;
-    document.getElementById('pBudgetInp').value = t;
+    if (label) label.innerText = `₪${totalNIS.toLocaleString()}`;
+    
+    // 3. עדכון שורת הסיכום במטבע המקומי (מוצג רק אם זה לא שקל)
+    const subLabel = document.getElementById('subTotalLabel');
+    
+    if (subLabel) {
+        if (selectedCurrency !== '₪') {
+            // הגדרת שערי חליפין (לפי תחזית 2026)
+            const rates = { '€': 4.1, '$': 3.7, '฿': 0.11, '£': 4.8 };
+            const rate = rates[selectedCurrency] || 1;
+            
+            const totalForeign = Math.round(totalNIS / rate);
+            
+            subLabel.innerText = `סיכום במטבע מקומי: ${totalForeign.toLocaleString()}${selectedCurrency}`;
+            subLabel.classList.remove('hidden'); // מציג את השורה
+        } else {
+            subLabel.classList.add('hidden'); // מסתיר אם זה בשקלים
+        }
+    }
+    
+    // 4. עדכון שדה הקלט הנסתר לצורך שמירה ב-DB
+    const budgetInp = document.getElementById('pBudgetInp');
+    if (budgetInp) budgetInp.value = totalNIS;
 }
-
-function updateAiTotal() {
-    const t = tempAiTasks.reduce((s, x) => s + (Number(x.price) || 0), 0);
-    const label = document.getElementById('totalLabel');
-    if(label) label.innerText = `₪${t.toLocaleString()}`;
-    document.getElementById('pBudgetInp').value = t;
-}
-
 async function recalculateAI() {
     if (tempAiTasks.length === 0) return;
+    
     const b = document.querySelector('button[onclick="recalculateAI()"]'), o = b.innerHTML; 
-    b.innerHTML = "<i class='fas fa-sync animate-spin'></i>"; b.disabled = true;
+    b.innerHTML = "<i class='fas fa-sync animate-spin'></i>"; 
+    b.disabled = true;
+
     try {
-        const g = firebase.app().functions("us-central1").httpsCallable("recalculateAIPlan");
+        // אנחנו קוראים לפונקציה הראשית שקיימת בשרת
+        const g = firebase.app().functions("me-west1").httpsCallable("generatePlanV21");
         const res = await g({ 
             title: document.getElementById('pTitleInp').value, 
-            category: document.getElementById('pCatInp').value, 
-            tasks: tempAiTasks.map(x => ({ name: x.name, price: 0 })), 
-            budgetLevel: document.getElementById('budgetLevel').value 
+            category: document.getElementById('pCatInp').value 
         });
         
         if (res.data && res.data.tasks) {
@@ -828,29 +877,47 @@ async function recalculateAI() {
                 done: false 
             }));
             renderAiPreviewList();
+            updateAiTotal(); 
         }
     } catch (err) { 
-        alert("שגיאת עדכון"); 
+        console.error("Recalculate Error:", err);
+        alert("שגיאת AI - נסה שוב בעוד רגע");
     } finally { 
         b.innerHTML = o; 
         b.disabled = false; 
     }
-}// --- Data & Cloud ---
-async function saveProject(){
-    const t=document.getElementById('pTitleInp').value; 
-    if(!t) { document.getElementById('pTitleInp').classList.add("ring-2","ring-red-500"); return; }
-    await db.collection('family_plans').add({
-        title: t, category: document.getElementById('pCatInp').value,
-        budget: Number(document.getElementById('pBudgetInp').value),
-        startDate: document.getElementById('pStartInp').value,
-        endDate: document.getElementById('pEndInp').value,
-        collaborators: [userEmail],
-        tasks: tempAiTasks, images: [], isArchived: false,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    closeNewProjectModal();
 }
 
+async function saveProject(){
+    const t = document.getElementById('pTitleInp').value.trim(); 
+    if(!t) { 
+        document.getElementById('pTitleInp').classList.add("ring-2","ring-red-500"); 
+        return; 
+    }
+    
+    const selectedCurrency = document.getElementById('projectCurrency').value;
+
+    try {
+        await db.collection('family_plans').add({
+            title: t, 
+            category: document.getElementById('pCatInp').value,
+            budget: Number(document.getElementById('pBudgetInp').value),
+            currency: selectedCurrency,
+            startDate: document.getElementById('pStartInp').value,
+            endDate: document.getElementById('pEndInp').value,
+            collaborators: [userEmail],
+            tasks: tempAiTasks, 
+            images: [], 
+            isArchived: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        closeNewProjectModal();
+        tempAiTasks = []; // איפוס המשימות אחרי שמירה
+    } catch (e) {
+        console.error("Save Error:", e);
+        alert("שגיאה בשמירת הפרויקט");
+    }
+}
 async function deleteProjectPermanently(){if(!currentProjectId)return; if(confirm("מחיקה לצמיתות?")){await db.collection('family_plans').doc(currentProjectId).delete(); closeProjectDetail(); goHome();}}
 async function toggleArchiveStatus(){if(!currentProjectId)return; const p=projects.find(x=>x.id===currentProjectId); await db.collection('family_plans').doc(currentProjectId).update({isArchived:!p.isArchived}); closeProjectDetail();}
 async function toggleTaskDone(i){const p=projects.find(x=>x.id===currentProjectId); let t=[...p.tasks]; t[i].done=!t[i].done; await db.collection('family_plans').doc(currentProjectId).update({tasks:t})}
@@ -877,20 +944,39 @@ async function compressAndUpload(i){
         };
     };
 }
-
 async function analyzeImageWithAI(base64){
     try {
-        const g = firebase.app().functions("us-central1").httpsCallable("analyzeImage");
-        const res = await g({image: base64});
-        if(res.data && res.data.title){
-            const p = projects.find(x => x.id === currentProjectId);
-            const newTask = { name: "✨ " + res.data.title, price: Number(res.data.price) || 0, done: true };
-            const updatedTasks = [...(p.tasks || []), newTask], updatedBudget = Number(p.budget || 0) + newTask.price;
-            await db.collection('family_plans').doc(currentProjectId).update({ tasks: updatedTasks, budget: updatedBudget });
-        }
-    } catch(err) { console.error("AI Error"); }
-}
+        // 1. מוצאים את הפרויקט הנוכחי כדי לדעת מה המטבע שלו
+        const p = projects.find(x => x.id === currentProjectId);
+        if(!p) return;
 
+        // 2. שולחים את התמונה יחד עם המטבע (למשל ฿ או $)
+const g = firebase.app().functions("me-west1").httpsCallable("analyzeImageV21");
+     const res = await g({
+            image: base64,
+            currency: p.currency || "₪" // שולח את המטבע השמור של הפרויקט
+        });
+
+        if(res.data && res.data.title){
+            // 3. מוסיפים את המשימה (המחיר כבר יגיע מה-AI כשהוא מומר לשקלים)
+            const newTask = { 
+                name: "✨ " + res.data.title, 
+                price: Number(res.data.price) || 0, 
+                done: true 
+            };
+            
+            const updatedTasks = [...(p.tasks || []), newTask];
+            const updatedBudget = Number(p.budget || 0) + newTask.price;
+            
+            await db.collection('family_plans').doc(currentProjectId).update({ 
+                tasks: updatedTasks, 
+                budget: updatedBudget 
+            });
+        }
+    } catch(err) { 
+        console.error("AI Error", err); 
+    }
+}
 async function deleteImage(e, i){ e.stopPropagation(); if(confirm("למחוק תמונה?")){ const p=projects.find(x=>x.id===currentProjectId); let im=[...(p.images||[])]; im.splice(i,1); await db.collection('family_plans').doc(currentProjectId).update({images:im}); }}
 async function savePartner(){const e=document.getElementById('partnerEmail').value.trim().toLowerCase(); if(!e||!currentProjectId)return; const p=projects.find(x=>x.id===currentProjectId); let c=[...(p.collaborators||[])]; if(!c.includes(e)){c.push(e); await db.collection('family_plans').doc(currentProjectId).update({collaborators:c});} closePartnerModal()}
 
