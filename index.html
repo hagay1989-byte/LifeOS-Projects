@@ -742,124 +742,20 @@ function renderUI() {
             </div>`;
     }).join('');
 }
+
 function renderProjectInfo() {
     const p = projects.find(x => x.id === currentProjectId);
     if (!p) return;
-
-    const b = Number(p.budget || 0);
-    const tasks = p.tasks || [];
-    const s = tasks.reduce((acc, t) => t.done ? acc + Number(t.price || 0) : acc, 0);
-
-    const pr = b > 0 ? Math.min(Math.round((s / b) * 100), 100) : 0;
-    const balance = b - s;
-
-    const balanceColorClass = pr >= 90 
-        ? 'text-red-500 animate-pulse' 
-        : 'text-white';
-
-    // ===== HEADER =====
+    const b = Number(p.budget || 0), tasks = p.tasks || [], s = tasks.reduce((acc, t) => t.done ? acc + Number(t.price || 0) : acc, 0);
+    const pr = b > 0 ? Math.min(Math.round((s / b) * 100), 100) : 0, balance = b - s;
+    const balanceColorClass = pr >= 90 ? 'text-red-500 animate-pulse' : 'text-white';
     document.getElementById('detailTitle').innerText = p.title;
-
-    document.getElementById("projectUsers").innerHTML =
-        (p.collaborators || []).map(e => `
-            <div title="${e}" class="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-bold border border-white/20">
-                ${e.charAt(0).toUpperCase()}
-            </div>
-        `).join("") +
-        `<button onclick="openPartnerModal()" class="w-7 h-7 rounded-full bg-white/10 border border-white/20 text-[11px] hover:bg-white/20 transition">+</button>`;
-
-    // ===== BALANCE CARD =====
-    document.getElementById('balanceCard').innerHTML = `
-        <div class="flex justify-between items-center mb-1 px-2">
-            <span class="text-[10px] opacity-40 uppercase">יתרה לניצול</span>
-            <span class="text-[10px] opacity-40 font-bold">
-                תקציב: ₪${b.toLocaleString()}
-            </span>
-        </div>
-
-        <div class="text-4xl font-black italic mb-3 ${balanceColorClass}">
-            ₪${balance.toLocaleString()}
-        </div>
-
-        <div class="progress-bar">
-            <div class="progress-fill" style="width:${pr}%; background: #fff"></div>
-        </div>
-
-        <div class="flex justify-between text-[9px] opacity-30 mt-1 uppercase font-bold">
-            <span>נוצל: ${pr}%</span>
-            <span>₪${s.toLocaleString()}</span>
-        </div>
-    `;
-
-    // ===== TASKS =====
-    document.getElementById('tasksList').innerHTML =
-        tasks.map((t, i) => {
-
-            const price = Number(t.price || 0).toLocaleString();
-
-            // 🔥 תיקון אמיתי — לא תלוי בתנאי
-            let date = "";
-            if (t.date && !isNaN(new Date(t.date).getTime())) {
-                date = formatDate(t.date);
-            }
-
-            return `
-                <div class="bg-white/5 p-4 rounded-2xl flex items-center justify-between ${t.done ? 'opacity-50' : ''} transition-all">
-
-                    <div class="flex items-center gap-4 flex-1">
-
-                        <input 
-                            type="checkbox" 
-                            ${t.done ? 'checked' : ''} 
-                            onchange="toggleTaskDone(${i})"
-                            class="w-5 h-5 accent-indigo-500 cursor-pointer"
-                        >
-
-                        <div class="flex flex-col flex-1">
-
-                            <input 
-                                type="text" 
-                                value="${escapeHTML(t.name || t.title)}"
-                                oninput="editTaskName(${i}, this.value)"
-                                class="bg-transparent text-white font-bold outline-none border-none p-0 focus:ring-0 ${t.done ? 'line-through opacity-50' : ''}"
-                            />
-
-                            <div class="text-xs opacity-50 flex gap-2 items-center mt-1">
-                                <span>₪${price}</span>
-                                <span class="opacity-40">📅 ${date || "—"}</span>
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                    <button 
-                        onclick="deleteTask(${i})"
-                        class="text-red-400/30 hover:text-red-400 p-2"
-                    >
-                        <i class="fas fa-trash-alt text-sm"></i>
-                    </button>
-
-                </div>
-            `;
-        }).join("") 
-        || `<div class="text-center py-8 opacity-20 text-sm italic">אין משימות...</div>`;
-
-    // ===== MEDIA =====
-    document.getElementById('mediaGallery').innerHTML =
-        (p.images || []).map((img, i) => `
-            <div class="img-container relative group">
-                <button onclick="deleteImage(event, ${i})" class="del-img-btn z-10">
-                    <i class="fas fa-trash"></i>
-                </button>
-                <img 
-                    src="${img}" 
-                    class="img-thumb cursor-zoom-in" 
-                    onclick="openLightbox('${img}')"
-                >
-            </div>
-        `).join("");
+    document.getElementById("projectUsers").innerHTML = (p.collaborators || []).map(e => `<div title="${e}" class="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-bold border border-white/20">${e.charAt(0).toUpperCase()}</div>`).join("") + `<button onclick="openPartnerModal()" class="w-7 h-7 rounded-full bg-white/10 border border-white/20 text-[11px] hover:bg-white/20 transition">+</button>`;
+    document.getElementById('balanceCard').innerHTML = `<div class="flex justify-between items-center mb-1 px-2"><span class="text-[10px] opacity-40 uppercase">יתרה לניצול</span><span class="text-[10px] opacity-40 font-bold">תקציב: ₪${b.toLocaleString()}</span></div><div class="text-4xl font-black italic mb-3 ${balanceColorClass}">₪${balance.toLocaleString()}</div><div class="progress-bar"><div class="progress-fill" style="width:${pr}%; background: #fff"></div></div><div class="flex justify-between text-[9px] opacity-30 mt-1 uppercase font-bold"><span>נוצל: ${pr}%</span><span>₪${s.toLocaleString()}</span></div>`;
+    document.getElementById('tasksList').innerHTML = tasks.map((t, i) => `<div class="bg-white/5 p-4 rounded-2xl flex items-center justify-between ${t.done ? 'opacity-50' : ''} transition-all"><div class="flex items-center gap-4 flex-1"><input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTaskDone(${i})" class="w-5 h-5 accent-indigo-500 cursor-pointer"><div class="flex flex-col flex-1"><input type="text" value="${escapeHTML(t.name || t.title)}" oninput="editTaskName(${i}, this.value)" class="bg-transparent text-white font-bold outline-none border-none p-0 focus:ring-0 ${t.done ? 'line-through opacity-50' : ''}" /><span class="text-xs opacity-50">₪${Number(t.price || 0).toLocaleString()}</span></div></div><button onclick="deleteTask(${i})" class="text-red-400/30 hover:text-red-400 p-2"><i class="fas fa-trash-alt text-sm"></i></button></div>`).join("") || `<div class="text-center py-8 opacity-20 text-sm italic">אין משימות...</div>`;
+    document.getElementById('mediaGallery').innerHTML = (p.images || []).map((img, i) => `<div class="img-container relative group"><button onclick="deleteImage(event, ${i})" class="del-img-btn z-10"><i class="fas fa-trash"></i></button><img src="${img}" class="img-thumb cursor-zoom-in" onclick="openLightbox('${img}')"></div>`).join("");
 }
+
 // --- AI Core & Skeleton UI ---
 
 async function generateAIPreview(){
@@ -1048,13 +944,25 @@ async function compressAndUpload(i){
         };
     };
 }
-async function analyzeImageWithAI(base64){
+async function analyzeImageWithAI(base64) {
     try {
-        // 1. מוצאים את הפרויקט הנוכחי
-        const p = projects.find(x => x.id === currentProjectId);
-        if(!p) return;
+        // 1. הגדרת פונקציית עזר לתאריך (חייבת להופיע ראשונה)
+        function formatDate(dateStr) {
+            if (!dateStr) return "";
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return "";
+            return d.toLocaleDateString("he-IL", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric"
+            });
+        }
 
-        // 2. קריאה ל-AI
+        // 2. מוצאים את הפרויקט הנוכחי
+        const p = projects.find(x => x.id === currentProjectId);
+        if (!p) return;
+
+        // 3. קריאה ל-AI (גרסה V21 היציבה שלך)
         const g = firebase.app().functions("me-west1").httpsCallable("analyzeImageV21");
         const res = await g({
             image: base64,
@@ -1064,107 +972,42 @@ async function analyzeImageWithAI(base64){
         const data = res.data;
         console.log("AI DATA:", data);
 
-        // בדיקה בסיסית
-        if(!data || !data.title){
+        // 4. בדיקה בסיסית
+        if (!data || !data.title) {
             alert("לא הצלחנו לזהות את החשבונית");
             return;
         }
 
-// 3. יצירת משימה (כולל תאריך בטוח)
-const rawDate = data.date;
-
-// בדיקה שהתאריך מה-AI באמת תקין
-let safeDate;
-
-if (rawDate && !isNaN(new Date(rawDate).getTime())) {
-    safeDate = new Date(rawDate).toISOString();
-} else {
-    safeDate = new Date().toISOString();
-}
-
-const newTask = { 
-    name: "✨ " + data.title, 
-    price: Number(data.price) || 0, 
-    date: safeDate, // ✅ תמיד יהיה תאריך תקין
-    done: true 
-};
-        
-        const updatedTasks = [...(p.tasks || []), newTask];
-        const updatedBudget = Number(p.budget || 0) + newTask.price;
-        
-        await db.collection('family_plans').doc(currentProjectId).update({ 
-            tasks: updatedTasks, 
-            budget: updatedBudget 
-        });
-
-// ===== פורמט תאריך גלובלי =====
-function formatDate(dateStr){
-    if (!dateStr) return "";
-
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return "";
-
-    return d.toLocaleDateString("he-IL", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-    });
-}
-
-// ===== AI ANALYZE IMAGE =====
-async function analyzeImageWithAI(base64){
-    try {
-        const p = projects.find(x => x.id === currentProjectId);
-        if(!p) return;
-
-        const g = firebase.app().functions("me-west1").httpsCallable("analyzeImageV21");
-
-        const res = await g({
-            image: base64,
-            currency: p.currency || "₪"
-        });
-
-        const data = res.data;
-        console.log("AI DATA:", data);
-
-        if(!data || !data.title){
-            alert("לא הצלחנו לזהות את החשבונית");
-            return;
-        }
-
+        // 5. יצירת משימה (כולל תאריך משולב בשם: עסק - סכום - תאריך)
         const newTask = { 
-            name: "✨ " + data.title, 
+            name: `✨ ${data.title} - ₪${Number(data.price).toLocaleString()} - ${formatDate(data.date || new Date())}`, 
             price: Number(data.price) || 0, 
             date: data.date || new Date().toISOString(),
             done: true 
         };
-
+        
+        // 6. עדכון ה-Database
         const updatedTasks = [...(p.tasks || []), newTask];
         const updatedBudget = Number(p.budget || 0) + newTask.price;
-
+        
         await db.collection('family_plans').doc(currentProjectId).update({ 
             tasks: updatedTasks, 
             budget: updatedBudget 
         });
 
-        // 🔥 רענון UI מידי
-        renderProjectInfo();
+        // 7. הודעה למשתמש (Toast)
+        showToast(`✔ ${data.title} ₪${newTask.price} • ${formatDate(newTask.date)}`);
 
-        // 🔥 הודעה יפה
-        const priceFormatted = newTask.price.toLocaleString();
-        showToast(`✔ ${data.title} ₪${priceFormatted} • ${formatDate(newTask.date)}`);
-
-    } catch(err) { 
+    } catch (err) { 
         console.error("AI Error", err); 
         alert("שגיאה בניתוח החשבונית");
     }
 }
 
-// ===== TOAST =====
+// פונקציית ה-Toast נשארת בחוץ כרגיל
 function showToast(message) {
     const toast = document.createElement("div");
     toast.innerText = message;
-
     toast.style.position = "fixed";
     toast.style.bottom = "30px";
     toast.style.left = "50%";
@@ -1178,7 +1021,6 @@ function showToast(message) {
     toast.style.boxShadow = "0 10px 30px rgba(0,0,0,0.3)";
     toast.style.opacity = "0";
     toast.style.transition = "all 0.3s ease";
-
     document.body.appendChild(toast);
 
     setTimeout(() => {
