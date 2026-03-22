@@ -700,42 +700,46 @@ function renderUI() {
     const filtered = projects.filter(p => isArchiveView ? p.isArchived : !p.isArchived);
     
     if (filtered.length === 0 && !isArchiveView) {
-        // עיצוב רספונסיבי מושלם למובייל
         container.className = "relative min-h-[70vh] w-full flex flex-col items-center justify-center px-6 text-center animate-fadeIn";
         container.innerHTML = `
             <div class="absolute w-64 h-64 bg-indigo-600/10 blur-[100px] rounded-full -z-10"></div>
-            
             <div class="flex flex-col items-center group">
                 <div class="w-24 h-24 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-full flex items-center justify-center mb-8 border border-white/10 shadow-2xl animate-pulse">
                     <i class="fas fa-wand-magic-sparkles text-3xl text-indigo-400"></i>
                 </div>
-                
                 <h2 class="text-4xl font-black italic tracking-tighter mb-4">LifeOS</h2>
-                <p class="text-sm opacity-40 max-w-[260px] leading-relaxed mb-10">
-                    המערכת ריקה. תן ל-AI לתכנן לך את הפרויקט הבא שלך בקיצור דרך.
-                </p>
-                
+                <p class="text-sm opacity-40 max-w-[260px] leading-relaxed mb-10">המערכת ריקה. תן ל-AI לתכנן לך את הפרויקט הבא שלך בקיצור דרך.</p>
                 <div class="flex flex-col items-center gap-3 opacity-20">
                     <span class="text-[10px] font-bold uppercase tracking-widest">לחץ כאן להתחלה</span>
                     <i class="fas fa-chevron-down animate-bounce"></i>
                 </div>
-            </div>
-        `;
+            </div>`;
         return;
     }
 
-    // תצוגת הגריד כשיש פרויקטים
     container.className = "grid grid-cols-1 md:grid-cols-2 gap-6 pb-24 w-full";
     container.innerHTML = filtered.map(p => {
         const b = Number(p.budget || 0), 
               s = (p.tasks || []).reduce((acc, t) => t.done ? acc + Number(t.price || 0) : acc, 0);
         const pr = b > 0 ? Math.min(Math.round((s / b) * 100), 100) : 0;
+        
+        // עיבוד תאריכים לתצוגה
+        const fmt = (d) => d ? new Date(d).toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit'}) : '--/--';
+
         return `
             <div class="glass-card p-8 group hover:scale-[1.02] transition-all active:scale-95" onclick="openProjectDetail('${p.id}')">
-                <div class="flex justify-between items-center mb-4">
+                <div class="flex justify-between items-center mb-1">
                     <h3 class="text-2xl font-black italic group-hover:text-indigo-400 transition-colors">${escapeHTML(p.title)}</h3>
                     <span class="text-xs opacity-40 font-bold">₪${(b - s).toLocaleString()} יתרה</span>
                 </div>
+
+                <div class="flex items-center gap-2 mb-4 opacity-30 text-[9px] font-bold uppercase tracking-widest">
+                    <i class="fas fa-calendar-day text-indigo-400"></i>
+                    <span>${fmt(p.startDate)}</span>
+                    <span class="opacity-50">➔</span>
+                    <span>${fmt(p.endDate)}</span>
+                </div>
+
                 <div class="progress-bar">
                     <div class="progress-fill" style="width:${pr}%"></div>
                 </div>
@@ -807,23 +811,52 @@ function renderAiPreviewList() {
     if(!c) return;
     
     c.innerHTML = tempAiTasks.map((x, i) => {
-        const price = Number(x.price) || 0;
+        const price = x.price || 0;
+        const taskName = x.name || "";
+        
         return `
-        <div class="bg-white/5 p-3 rounded-xl flex items-center gap-3 animate-fadeIn">
-            <button onclick="tempAiTasks.splice(${i},1); renderAiPreviewList();" class="text-red-400/50 hover:text-red-500 transition-colors">
-                <i class="fas fa-times-circle"></i>
-            </button>
-            <input type="text" value="${escapeHTML(x.name)}" oninput="tempAiTasks[${i}].name=this.value" class="bg-transparent text-white font-bold flex-1 outline-none text-sm" />
-            <div class="flex items-center bg-white/10 rounded-lg px-2">
-                <span class="text-[10px] opacity-40 ml-1">₪</span>
-                <input type="number" value="${price}" oninput="tempAiTasks[${i}].price=Number(this.value); updateAiTotal();" class="bg-transparent text-indigo-300 font-bold w-20 text-left outline-none text-sm" />
+        <div class="flex items-start gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 mb-2 group transition-all hover:bg-white/[0.08]">
+            
+            <div class="mt-1 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
+                <i class="fas fa-pencil-alt text-[10px] text-indigo-400"></i>
             </div>
+
+            <div class="flex-1 min-w-0">
+                <textarea 
+                    oninput="tempAiTasks[${i}].name=this.value; this.style.height='auto'; this.style.height=(this.scrollHeight)+'px';" 
+                    class="bg-transparent text-white font-bold w-full outline-none text-sm resize-none overflow-hidden py-0.5 leading-relaxed placeholder:text-white/20"
+                    rows="1"
+                    placeholder="מה עושים?"
+                >${escapeHTML(taskName)}</textarea>
+            </div>
+
+            <div class="shrink-0 flex items-center gap-1 border-b border-white/10 focus-within:border-indigo-500 transition-all py-0.5">
+                <span class="text-[10px] text-indigo-400 font-black italic">₪</span>
+                <input type="number" 
+                    value="${price}" 
+                    oninput="tempAiTasks[${i}].price=Number(this.value); updateAiTotal();" 
+                    class="bg-transparent text-indigo-300 font-black w-20 text-left outline-none text-sm"
+                    style="font-family: 'Heebo', sans-serif;"
+                />
+            </div>
+
+            <button onclick="tempAiTasks.splice(${i},1); renderAiPreviewList();" 
+                    class="text-red-400/20 hover:text-red-500 transition-colors mt-1 shrink-0">
+                <i class="fas fa-times"></i>
+            </button>
         </div>`;
     }).join("");
     
+    // תיקון גובה אוטומטי
+    setTimeout(() => {
+        c.querySelectorAll('textarea').forEach(t => {
+            t.style.height = 'auto';
+            t.style.height = (t.scrollHeight) + 'px';
+        });
+    }, 30);
+    
     updateAiTotal();
 }
-
 function updateAiTotal() {
     // 1. חישוב סה"כ בשקלים (הבסיס שלנו)
     const totalNIS = tempAiTasks.reduce((s, x) => s + (Number(x.price) || 0), 0);
@@ -986,13 +1019,12 @@ async function analyzeImageWithAI(base64) {
             done: true 
         };
         
-        // 6. עדכון ה-Database
+// 6. עדכון ה-Database (בלי לשנות את ה-budget המקורי!)
         const updatedTasks = [...(p.tasks || []), newTask];
-        const updatedBudget = Number(p.budget || 0) + newTask.price;
         
         await db.collection('family_plans').doc(currentProjectId).update({ 
-            tasks: updatedTasks, 
-            budget: updatedBudget 
+            tasks: updatedTasks
+            // הסרנו את updatedBudget כדי שהתקציב שקבעת יישאר נעול
         });
 
         // 7. הודעה למשתמש (Toast)
@@ -1160,6 +1192,3 @@ function toggleSideMenu() {
 </script>
 </body>
 </html>
-
-
-
